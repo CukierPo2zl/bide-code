@@ -1,6 +1,6 @@
-import type { DesktopAppBranding, DesktopAppStageLabel } from "@t3tools/contracts";
+import type { DesktopAppBranding, DesktopAppStageLabel } from "@bide/contracts";
 
-const APP_BASE_NAME = "T3 Code";
+const APP_BASE_NAME = "BIDE code";
 const NIGHTLY_VERSION_PATTERN = /-nightly\.\d{8}\.\d+$/;
 
 export function resolveDesktopAppStageLabel(input: {

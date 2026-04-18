@@ -4,7 +4,7 @@ import {
   readPathFromLaunchctl,
   readEnvironmentFromLoginShell,
   ShellEnvironmentReader,
-} from "@t3tools/shared/shell";
+} from "@bide/shared/shell";
 
 const LOGIN_SHELL_ENV_NAMES = [
   "PATH",
