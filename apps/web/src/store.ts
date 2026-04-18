@@ -20,8 +20,8 @@ import type {
   ScopedThreadRef,
   ThreadId,
   TurnId,
-} from "@t3tools/contracts";
-import { resolveModelSlugForProvider } from "@t3tools/shared/model";
+} from "@bide/contracts";
+import { resolveModelSlugForProvider } from "@bide/shared/model";
 import { create } from "zustand";
 import {
   type ChatMessage,

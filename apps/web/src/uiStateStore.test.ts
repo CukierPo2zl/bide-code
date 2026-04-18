@@ -1,4 +1,4 @@
-import { ProjectId, ThreadId } from "@t3tools/contracts";
+import { ProjectId, ThreadId } from "@bide/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -7,6 +7,7 @@ import {
   reorderProjects,
   setProjectExpanded,
   setThreadChangedFilesExpanded,
+  setThreadWorkflowTemplate,
   syncProjects,
   syncThreads,
   type UiState,
@@ -18,6 +19,9 @@ function makeUiState(overrides: Partial<UiState> = {}): UiState {
     projectOrder: [],
     threadLastVisitedAtById: {},
     threadChangedFilesExpandedById: {},
+    sidebarTab: "threads",
+    selectedAgent: null,
+    workflowTemplateIdByThreadId: {},
     ...overrides,
   };
 }
@@ -344,5 +348,55 @@ describe("uiStateStore pure functions", () => {
     const next = setThreadChangedFilesExpanded(initialState, thread1, "turn-1", true);
 
     expect(next.threadChangedFilesExpandedById).toEqual({});
+  });
+
+  it("setThreadWorkflowTemplate records and clears a per-thread binding", () => {
+    const thread1 = ThreadId.make("thread-1");
+    const initialState = makeUiState();
+
+    const withTemplate = setThreadWorkflowTemplate(initialState, thread1, "template-a");
+    expect(withTemplate.workflowTemplateIdByThreadId).toEqual({ [thread1]: "template-a" });
+
+    const cleared = setThreadWorkflowTemplate(withTemplate, thread1, null);
+    expect(cleared.workflowTemplateIdByThreadId).toEqual({});
+  });
+
+  it("setThreadWorkflowTemplate returns the same state when nothing changes", () => {
+    const thread1 = ThreadId.make("thread-1");
+    const initialState = makeUiState({
+      workflowTemplateIdByThreadId: { [thread1]: "template-a" },
+    });
+
+    const unchanged = setThreadWorkflowTemplate(initialState, thread1, "template-a");
+    expect(unchanged).toBe(initialState);
+
+    const noop = setThreadWorkflowTemplate(initialState, ThreadId.make("other"), null);
+    expect(noop).toBe(initialState);
+  });
+
+  it("syncThreads prunes workflow template bindings for threads no longer present", () => {
+    const thread1 = ThreadId.make("thread-1");
+    const thread2 = ThreadId.make("thread-2");
+    const initialState = makeUiState({
+      workflowTemplateIdByThreadId: {
+        [thread1]: "template-a",
+        [thread2]: "template-b",
+      },
+    });
+
+    const next = syncThreads(initialState, [{ key: thread1 }]);
+
+    expect(next.workflowTemplateIdByThreadId).toEqual({ [thread1]: "template-a" });
+  });
+
+  it("clearThreadUi removes the workflow template binding for a thread", () => {
+    const thread1 = ThreadId.make("thread-1");
+    const initialState = makeUiState({
+      workflowTemplateIdByThreadId: { [thread1]: "template-a" },
+    });
+
+    const next = clearThreadUi(initialState, thread1);
+
+    expect(next.workflowTemplateIdByThreadId).toEqual({});
   });
 });

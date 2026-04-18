@@ -1,5 +1,5 @@
-import { type ServerLifecycleWelcomePayload } from "@t3tools/contracts";
-import { scopedProjectKey, scopeProjectRef } from "@t3tools/client-runtime";
+import { type ServerLifecycleWelcomePayload } from "@bide/contracts";
+import { scopedProjectKey, scopeProjectRef } from "@bide/client-runtime";
 import {
   Outlet,
   createRootRouteWithContext,
@@ -32,6 +32,7 @@ import {
 } from "../rpc/serverState";
 import { useStore } from "../store";
 import { useUiStateStore } from "../uiStateStore";
+import { startWorkflowSync } from "../workflowStore";
 import { syncBrowserChromeTheme } from "../hooks/useTheme";
 import {
   ensureEnvironmentConnectionBootstrapped,
@@ -178,6 +179,9 @@ function errorDetails(error: unknown): string {
 
 function ServerStateBootstrap() {
   useEffect(() => startServerStateSync(getPrimaryEnvironmentConnection().client.server), []);
+  useEffect(() => {
+    startWorkflowSync();
+  }, []);
 
   return null;
 }

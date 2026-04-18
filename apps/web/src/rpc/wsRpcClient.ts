@@ -8,8 +8,8 @@ import {
   ORCHESTRATION_WS_METHODS,
   type ServerSettingsPatch,
   WS_METHODS,
-} from "@t3tools/contracts";
-import { applyGitStatusStreamEvent } from "@t3tools/shared/git";
+} from "@bide/contracts";
+import { applyGitStatusStreamEvent } from "@bide/shared/git";
 import { Effect, Stream } from "effect";
 
 import { type WsRpcProtocolClient } from "./protocol";
@@ -71,6 +71,9 @@ export interface WsRpcClient {
   readonly filesystem: {
     readonly browse: RpcUnaryMethod<typeof WS_METHODS.filesystemBrowse>;
   };
+  readonly agents: {
+    readonly listAgents: RpcUnaryMethod<typeof WS_METHODS.agentsListAgents>;
+  };
   readonly shell: {
     readonly openInEditor: (input: {
       readonly cwd: Parameters<LocalApi["shell"]["openInEditor"]>[0];
@@ -119,6 +122,12 @@ export interface WsRpcClient {
     readonly subscribeShell: RpcStreamMethod<typeof ORCHESTRATION_WS_METHODS.subscribeShell>;
     readonly subscribeThread: RpcInputStreamMethod<typeof ORCHESTRATION_WS_METHODS.subscribeThread>;
   };
+  readonly workflow: {
+    readonly list: RpcUnaryNoArgMethod<typeof WS_METHODS.workflowList>;
+    readonly save: RpcUnaryMethod<typeof WS_METHODS.workflowSave>;
+    readonly delete: RpcUnaryMethod<typeof WS_METHODS.workflowDelete>;
+    readonly subscribe: RpcStreamMethod<typeof WS_METHODS.subscribeWorkflows>;
+  };
 }
 
 export function createWsRpcClient(transport: WsTransport): WsRpcClient {
@@ -150,6 +159,10 @@ export function createWsRpcClient(transport: WsTransport): WsRpcClient {
     },
     filesystem: {
       browse: (input) => transport.request((client) => client[WS_METHODS.filesystemBrowse](input)),
+    },
+    agents: {
+      listAgents: (input) =>
+        transport.request((client) => client[WS_METHODS.agentsListAgents](input)),
     },
     shell: {
       openInEditor: (input) =>
@@ -248,6 +261,17 @@ export function createWsRpcClient(transport: WsTransport): WsRpcClient {
       subscribeThread: (input, listener, options) =>
         transport.subscribe(
           (client) => client[ORCHESTRATION_WS_METHODS.subscribeThread](input),
+          listener,
+          options,
+        ),
+    },
+    workflow: {
+      list: () => transport.request((client) => client[WS_METHODS.workflowList]({})),
+      save: (input) => transport.request((client) => client[WS_METHODS.workflowSave](input)),
+      delete: (input) => transport.request((client) => client[WS_METHODS.workflowDelete](input)),
+      subscribe: (listener, options) =>
+        transport.subscribe(
+          (client) => client[WS_METHODS.subscribeWorkflows]({}),
           listener,
           options,
         ),

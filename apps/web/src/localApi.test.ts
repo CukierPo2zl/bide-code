@@ -10,10 +10,10 @@ import {
   type ServerProvider,
   type TerminalEvent,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@bide/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ContextMenuItem } from "@t3tools/contracts";
+import type { ContextMenuItem } from "@bide/contracts";
 
 const showContextMenuFallbackMock =
   vi.fn<
@@ -46,6 +46,9 @@ const rpcClientMock = {
     onEvent: vi.fn((listener: (event: TerminalEvent) => void) =>
       registerListener(terminalEventListeners, listener),
     ),
+  },
+  agents: {
+    listAgents: vi.fn(),
   },
   projects: {
     searchEntries: vi.fn(),
