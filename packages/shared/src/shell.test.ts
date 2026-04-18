@@ -13,7 +13,7 @@ describe("extractPathFromShellOutput", () => {
   it("extracts the path between capture markers", () => {
     expect(
       extractPathFromShellOutput(
-        "__T3CODE_PATH_START__\n/opt/homebrew/bin:/usr/bin\n__T3CODE_PATH_END__\n",
+        "__BIDECODE_PATH_START__\n/opt/homebrew/bin:/usr/bin\n__BIDECODE_PATH_END__\n",
       ),
     ).toBe("/opt/homebrew/bin:/usr/bin");
   });
@@ -21,7 +21,7 @@ describe("extractPathFromShellOutput", () => {
   it("ignores shell startup noise around the capture markers", () => {
     expect(
       extractPathFromShellOutput(
-        "Welcome to fish\n__T3CODE_PATH_START__\n/opt/homebrew/bin:/usr/bin\n__T3CODE_PATH_END__\nBye\n",
+        "Welcome to fish\n__BIDECODE_PATH_START__\n/opt/homebrew/bin:/usr/bin\n__BIDECODE_PATH_END__\nBye\n",
       ),
     ).toBe("/opt/homebrew/bin:/usr/bin");
   });
@@ -39,7 +39,7 @@ describe("readPathFromLoginShell", () => {
         args: ReadonlyArray<string>,
         options: { encoding: "utf8"; timeout: number },
       ) => string
-    >(() => "__T3CODE_ENV_PATH_START__\n/a:/b\n__T3CODE_ENV_PATH_END__\n");
+    >(() => "__BIDECODE_ENV_PATH_START__\n/a:/b\n__BIDECODE_ENV_PATH_END__\n");
 
     expect(readPathFromLoginShell("/opt/homebrew/bin/fish", execFile)).toBe("/a:/b");
     expect(execFile).toHaveBeenCalledTimes(1);
@@ -57,8 +57,8 @@ describe("readPathFromLoginShell", () => {
     expect(args).toHaveLength(2);
     expect(args?.[0]).toBe("-ilc");
     expect(args?.[1]).toContain("printenv PATH || true");
-    expect(args?.[1]).toContain("__T3CODE_ENV_PATH_START__");
-    expect(args?.[1]).toContain("__T3CODE_ENV_PATH_END__");
+    expect(args?.[1]).toContain("__BIDECODE_ENV_PATH_START__");
+    expect(args?.[1]).toContain("__BIDECODE_ENV_PATH_END__");
     expect(options).toEqual({ encoding: "utf8", timeout: 5000 });
   });
 });
@@ -105,12 +105,12 @@ describe("readEnvironmentFromLoginShell", () => {
       ) => string
     >(() =>
       [
-        "__T3CODE_ENV_PATH_START__",
+        "__BIDECODE_ENV_PATH_START__",
         "/a:/b",
-        "__T3CODE_ENV_PATH_END__",
-        "__T3CODE_ENV_SSH_AUTH_SOCK_START__",
+        "__BIDECODE_ENV_PATH_END__",
+        "__BIDECODE_ENV_SSH_AUTH_SOCK_START__",
         "/tmp/secretive.sock",
-        "__T3CODE_ENV_SSH_AUTH_SOCK_END__",
+        "__BIDECODE_ENV_SSH_AUTH_SOCK_END__",
       ].join("\n"),
     );
 
@@ -130,11 +130,11 @@ describe("readEnvironmentFromLoginShell", () => {
       ) => string
     >(() =>
       [
-        "__T3CODE_ENV_PATH_START__",
+        "__BIDECODE_ENV_PATH_START__",
         "/a:/b",
-        "__T3CODE_ENV_PATH_END__",
-        "__T3CODE_ENV_SSH_AUTH_SOCK_START__",
-        "__T3CODE_ENV_SSH_AUTH_SOCK_END__",
+        "__BIDECODE_ENV_PATH_END__",
+        "__BIDECODE_ENV_SSH_AUTH_SOCK_START__",
+        "__BIDECODE_ENV_SSH_AUTH_SOCK_END__",
       ].join("\n"),
     );
 
@@ -151,7 +151,7 @@ describe("readEnvironmentFromLoginShell", () => {
         options: { encoding: "utf8"; timeout: number },
       ) => string
     >(() =>
-      ["__T3CODE_ENV_CUSTOM_VAR_START__", "  padded value  ", "__T3CODE_ENV_CUSTOM_VAR_END__"].join(
+      ["__BIDECODE_ENV_CUSTOM_VAR_START__", "  padded value  ", "__BIDECODE_ENV_CUSTOM_VAR_END__"].join(
         "\n",
       ),
     );
