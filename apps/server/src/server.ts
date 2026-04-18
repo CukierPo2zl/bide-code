@@ -8,6 +8,8 @@ import {
   projectFaviconRouteLayer,
   serverEnvironmentRouteLayer,
   staticAndDevRouteLayer,
+  workflowArtifactUploadRouteLayer,
+  workflowArtifactContentRouteLayer,
   browserApiCorsLayer,
 } from "./http";
 import { fixPath } from "./os-jank";
@@ -45,6 +47,8 @@ import { RepositoryIdentityResolverLive } from "./project/Layers/RepositoryIdent
 import { WorkspaceEntriesLive } from "./workspace/Layers/WorkspaceEntries";
 import { WorkspaceFileSystemLive } from "./workspace/Layers/WorkspaceFileSystem";
 import { WorkspacePathsLive } from "./workspace/Layers/WorkspacePaths";
+import { AgentDefinitionsLive } from "./agents/Layers/AgentDefinitions";
+import { WorkflowTemplateServiceLive } from "./workflow/WorkflowTemplateService";
 import { ProjectSetupScriptRunnerLive } from "./project/Layers/ProjectSetupScriptRunner";
 import { ObservabilityLive } from "./observability/Layers/Observability";
 import { ServerEnvironmentLive } from "./environment/Layers/ServerEnvironment";
@@ -206,6 +210,8 @@ const RuntimeDependenciesLive = ReactorLayerLive.pipe(
   Layer.provideMerge(ProviderRegistryLive),
   Layer.provideMerge(ServerSettingsLive),
   Layer.provideMerge(WorkspaceLayerLive),
+  Layer.provideMerge(AgentDefinitionsLive),
+  Layer.provideMerge(WorkflowTemplateServiceLive),
   Layer.provideMerge(ProjectFaviconResolverLive),
   Layer.provideMerge(RepositoryIdentityResolverLive),
   Layer.provideMerge(ServerEnvironmentLive),
@@ -239,6 +245,8 @@ export const makeRoutesLayer = Layer.mergeAll(
   projectFaviconRouteLayer,
   serverEnvironmentRouteLayer,
   staticAndDevRouteLayer,
+  workflowArtifactUploadRouteLayer,
+  workflowArtifactContentRouteLayer,
   websocketRpcRouteLayer,
 ).pipe(Layer.provide(browserApiCorsLayer));
 

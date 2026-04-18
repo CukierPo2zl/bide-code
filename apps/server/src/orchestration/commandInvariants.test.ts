@@ -7,7 +7,7 @@ import {
   ThreadId,
   type OrchestrationCommand,
   type OrchestrationReadModel,
-} from "@t3tools/contracts";
+} from "@bide/contracts";
 import { Effect } from "effect";
 
 import {

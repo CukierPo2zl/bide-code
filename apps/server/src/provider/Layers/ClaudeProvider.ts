@@ -6,10 +6,10 @@ import type {
   ServerProviderAuth,
   ServerProviderSlashCommand,
   ServerProviderState,
-} from "@t3tools/contracts";
+} from "@bide/contracts";
 import { Cache, Duration, Effect, Equal, Layer, Option, Result, Schema, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
-import { decodeJsonResult } from "@t3tools/shared/schemaJson";
+import { decodeJsonResult } from "@bide/shared/schemaJson";
 import {
   query as claudeQuery,
   type SlashCommand as ClaudeSlashCommand,
@@ -29,7 +29,7 @@ import {
 import { makeManagedServerProvider } from "../makeManagedServerProvider";
 import { ClaudeProvider } from "../Services/ClaudeProvider";
 import { ServerSettingsService } from "../../serverSettings";
-import { ServerSettingsError } from "@t3tools/contracts";
+import { ServerSettingsError } from "@bide/contracts";
 
 const DEFAULT_CLAUDE_MODEL_CAPABILITIES: ModelCapabilities = {
   reasoningEffortLevels: [],
@@ -502,7 +502,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Claude is disabled in T3 Code settings.",
+        message: "Claude is disabled in BIDE code settings.",
       },
     });
   }
@@ -683,7 +683,7 @@ const makePendingClaudeProvider = (claudeSettings: ClaudeSettings): ServerProvid
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Claude is disabled in T3 Code settings.",
+        message: "Claude is disabled in BIDE code settings.",
       },
     });
   }

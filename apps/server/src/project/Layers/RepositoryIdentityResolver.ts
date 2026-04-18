@@ -1,6 +1,6 @@
-import type { RepositoryIdentity } from "@t3tools/contracts";
+import type { RepositoryIdentity } from "@bide/contracts";
 import { Cache, Duration, Effect, Exit, Layer } from "effect";
-import { detectGitHostingProviderFromRemoteUrl, normalizeGitRemoteUrl } from "@t3tools/shared/git";
+import { detectGitHostingProviderFromRemoteUrl, normalizeGitRemoteUrl } from "@bide/shared/git";
 
 import { runProcess } from "../../processRunner.ts";
 import {

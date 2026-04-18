@@ -1,5 +1,5 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import type { ServerProvider } from "@t3tools/contracts";
+import type { ServerProvider } from "@bide/contracts";
 import { assert, it } from "@effect/vitest";
 import { Effect, FileSystem } from "effect";
 
@@ -122,7 +122,7 @@ it.layer(NodeServices.layer)("providerStatusCache", (it) => {
       version: null,
       status: "disabled",
       auth: { status: "unknown" },
-      message: "Codex is disabled in T3 Code settings.",
+      message: "Codex is disabled in BIDE code settings.",
     });
 
     assert.deepStrictEqual(

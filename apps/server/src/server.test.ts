@@ -21,7 +21,7 @@ import {
   WS_METHODS,
   WsRpcGroup,
   EditorId,
-} from "@t3tools/contracts";
+} from "@bide/contracts";
 import { assert, it } from "@effect/vitest";
 import { assertFailure, assertInclude, assertTrue } from "@effect/vitest/utils";
 import {
@@ -100,6 +100,11 @@ import {
   type ServerEnvironmentShape,
 } from "./environment/Services/ServerEnvironment.ts";
 import { WorkspaceEntriesLive } from "./workspace/Layers/WorkspaceEntries.ts";
+import { AgentDefinitionsLive } from "./agents/Layers/AgentDefinitions.ts";
+import {
+  WorkflowTemplateService,
+  type WorkflowTemplateServiceShape,
+} from "./workflow/WorkflowTemplateService.ts";
 import { WorkspaceFileSystemLive } from "./workspace/Layers/WorkspaceFileSystem.ts";
 import { WorkspacePathsLive } from "./workspace/Layers/WorkspacePaths.ts";
 import { ServerSecretStoreLive } from "./auth/Layers/ServerSecretStore.ts";
@@ -174,6 +179,7 @@ const workspaceAndProjectServicesLayer = Layer.mergeAll(
     Layer.provide(WorkspaceEntriesLive.pipe(Layer.provide(WorkspacePathsLive))),
   ),
   ProjectFaviconResolverLive,
+  AgentDefinitionsLive,
 );
 
 const browserOtlpTracingLayer = Layer.mergeAll(
@@ -308,6 +314,7 @@ const buildAppUnderTest = (options?: {
     serverRuntimeStartup?: Partial<ServerRuntimeStartupShape>;
     serverEnvironment?: Partial<ServerEnvironmentShape>;
     repositoryIdentityResolver?: Partial<RepositoryIdentityResolverShape>;
+    workflowTemplateService?: Partial<WorkflowTemplateServiceShape>;
   };
 }) =>
   Effect.gen(function* () {
@@ -405,6 +412,15 @@ const buildAppUnderTest = (options?: {
       Layer.provide(
         Layer.mock(TerminalManager)({
           ...options?.layers?.terminalManager,
+        }),
+      ),
+      Layer.provide(
+        Layer.mock(WorkflowTemplateService)({
+          list: () => Effect.succeed([]),
+          save: (template) => Effect.succeed(template),
+          delete: (id) => Effect.succeed({ id }),
+          changes: Stream.empty,
+          ...options?.layers?.workflowTemplateService,
         }),
       ),
       Layer.provide(
@@ -2881,16 +2897,16 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
   it.effect("enriches replayed project events with repository identity metadata", () =>
     Effect.gen(function* () {
       const repositoryIdentity = {
-        canonicalKey: "github.com/t3tools/t3code",
+        canonicalKey: "github.com/bide/bidecode",
         locator: {
           source: "git-remote" as const,
           remoteName: "origin",
-          remoteUrl: "git@github.com:T3Tools/t3code.git",
+          remoteUrl: "git@github.com:BIDETools/bidecode.git",
         },
-        displayName: "T3Tools/t3code",
+        displayName: "BIDETools/bidecode",
         provider: "github",
-        owner: "T3Tools",
-        name: "t3code",
+        owner: "BIDETools",
+        name: "bidecode",
       };
 
       yield* buildAppUnderTest({
@@ -2990,7 +3006,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
             isRepo: true,
             hasOriginRemote: true,
             isDefaultBranch: false,
-            branch: "t3code/bootstrap-branch",
+            branch: "bidecode/bootstrap-branch",
             hasWorkingTreeChanges: false,
             workingTree: {
               files: [],
@@ -3006,7 +3022,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         const createWorktree = vi.fn((_: Parameters<GitCoreShape["createWorktree"]>[0]) =>
           Effect.succeed({
             worktree: {
-              branch: "t3code/bootstrap-branch",
+              branch: "bidecode/bootstrap-branch",
               path: "/tmp/bootstrap-worktree",
             },
           }),
@@ -3075,7 +3091,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
                 prepareWorktree: {
                   projectCwd: "/tmp/project",
                   baseBranch: "main",
-                  branch: "t3code/bootstrap-branch",
+                  branch: "bidecode/bootstrap-branch",
                 },
                 runSetupScript: true,
               },
@@ -3098,7 +3114,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         assert.deepEqual(createWorktree.mock.calls[0]?.[0], {
           cwd: "/tmp/project",
           branch: "main",
-          newBranch: "t3code/bootstrap-branch",
+          newBranch: "bidecode/bootstrap-branch",
           path: null,
         });
         assert.deepEqual(runForThread.mock.calls[0]?.[0], {
@@ -3131,7 +3147,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       const createWorktree = vi.fn((_: Parameters<GitCoreShape["createWorktree"]>[0]) =>
         Effect.succeed({
           worktree: {
-            branch: "t3code/bootstrap-branch",
+            branch: "bidecode/bootstrap-branch",
             path: "/tmp/bootstrap-worktree",
           },
         }),
@@ -3191,7 +3207,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
               prepareWorktree: {
                 projectCwd: "/tmp/project",
                 baseBranch: "main",
-                branch: "t3code/bootstrap-branch",
+                branch: "bidecode/bootstrap-branch",
               },
               runSetupScript: true,
             },
@@ -3224,7 +3240,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       const createWorktree = vi.fn((_: Parameters<GitCoreShape["createWorktree"]>[0]) =>
         Effect.succeed({
           worktree: {
-            branch: "t3code/bootstrap-branch",
+            branch: "bidecode/bootstrap-branch",
             path: "/tmp/bootstrap-worktree",
           },
         }),
@@ -3307,7 +3323,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
               prepareWorktree: {
                 projectCwd: "/tmp/project",
                 baseBranch: "main",
-                branch: "t3code/bootstrap-branch",
+                branch: "bidecode/bootstrap-branch",
               },
               runSetupScript: true,
             },
@@ -3390,7 +3406,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
               prepareWorktree: {
                 projectCwd: "/tmp/project",
                 baseBranch: "main",
-                branch: "t3code/bootstrap-branch",
+                branch: "bidecode/bootstrap-branch",
               },
               runSetupScript: false,
             },
