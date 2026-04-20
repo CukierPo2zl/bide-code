@@ -19,6 +19,7 @@ import type {
   GitCreateBranchResult,
 } from "./git";
 import type { FilesystemBrowseInput, FilesystemBrowseResult } from "./filesystem";
+import type { ListAgentsInput, ListAgentsResult } from "./agents";
 import type {
   ProjectSearchEntriesInput,
   ProjectSearchEntriesResult,
@@ -51,6 +52,11 @@ import type {
   OrchestrationSubscribeThreadInput,
   OrchestrationThreadStreamItem,
 } from "./orchestration";
+import type {
+  WorkflowDeleteResult,
+  WorkflowSubscribeEvent,
+  WorkflowTemplate,
+} from "./workflow";
 import type { EnvironmentId } from "./baseSchemas";
 import { EditorId } from "./editor";
 import { ClientSettings, ServerSettings, ServerSettingsPatch } from "./settings";
@@ -247,6 +253,9 @@ export interface EnvironmentApi {
   filesystem: {
     browse: (input: FilesystemBrowseInput) => Promise<FilesystemBrowseResult>;
   };
+  agents: {
+    listAgents: (input: ListAgentsInput) => Promise<ListAgentsResult>;
+  };
   git: {
     listBranches: (input: GitListBranchesInput) => Promise<GitListBranchesResult>;
     createWorktree: (input: GitCreateWorktreeInput) => Promise<GitCreateWorktreeResult>;
@@ -283,6 +292,17 @@ export interface EnvironmentApi {
     subscribeThread: (
       input: OrchestrationSubscribeThreadInput,
       callback: (event: OrchestrationThreadStreamItem) => void,
+      options?: {
+        onResubscribe?: () => void;
+      },
+    ) => () => void;
+  };
+  workflow: {
+    list: () => Promise<ReadonlyArray<WorkflowTemplate>>;
+    save: (template: WorkflowTemplate) => Promise<WorkflowTemplate>;
+    delete: (input: { id: string }) => Promise<WorkflowDeleteResult>;
+    subscribe: (
+      callback: (event: WorkflowSubscribeEvent) => void,
       options?: {
         onResubscribe?: () => void;
       },
