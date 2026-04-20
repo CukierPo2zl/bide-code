@@ -22,6 +22,10 @@ function makeUiState(overrides: Partial<UiState> = {}): UiState {
     projectOrder: [],
     threadLastVisitedAtById: {},
     threadChangedFilesExpandedById: {},
+    sidebarTab: "threads",
+    selectedAgent: null,
+    workflowTemplateIdByThreadId: {},
+    viewModeByThreadId: {},
     ...overrides,
   };
 }
