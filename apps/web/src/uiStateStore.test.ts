@@ -22,6 +22,7 @@ function makeUiState(overrides: Partial<UiState> = {}): UiState {
     sidebarTab: "threads",
     selectedAgent: null,
     workflowTemplateIdByThreadId: {},
+    viewModeByThreadId: {},
     ...overrides,
   };
 }
