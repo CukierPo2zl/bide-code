@@ -41,13 +41,13 @@ import {
   TurnId,
   type UserInputQuestion,
   ClaudeCodeEffort,
-} from "@t3tools/contracts";
+} from "@bide/contracts";
 import {
   applyClaudePromptEffortPrefix,
   resolveApiModelId,
   resolveEffort,
   trimOrNull,
-} from "@t3tools/shared/model";
+} from "@bide/shared/model";
 import {
   Cause,
   DateTime,
@@ -966,7 +966,22 @@ const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
     ((input: {
       readonly prompt: AsyncIterable<SDKUserMessage>;
       readonly options: ClaudeQueryOptions;
-    }) => query({ prompt: input.prompt, options: input.options }) as ClaudeQueryRuntime);
+    }) => {
+      console.log(
+        "[ClaudeAdapter] query() options:",
+        JSON.stringify(input.options, null, 2),
+      );
+      const wrappedPrompt = (async function* () {
+        for await (const message of input.prompt) {
+          console.log(
+            "[ClaudeAdapter] query() prompt message:",
+            JSON.stringify(message, null, 2),
+          );
+          yield message;
+        }
+      })();
+      return query({ prompt: wrappedPrompt, options: input.options }) as ClaudeQueryRuntime;
+    });
 
   const sessions = new Map<ThreadId, ClaudeSessionContext>();
   const runtimeEventQueue = yield* Queue.unbounded<ProviderRuntimeEvent>();

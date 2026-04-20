@@ -1,3 +1,4 @@
+import * as FS from "node:fs";
 import * as OS from "node:os";
 import { Effect, Path } from "effect";
 import {
@@ -5,7 +6,7 @@ import {
   mergePathEntries,
   readPathFromLaunchctl,
   readPathFromLoginShell,
-} from "@t3tools/shared/shell";
+} from "@bide/shared/shell";
 
 function logPathHydrationWarning(message: string, error?: unknown): void {
   console.warn(`[server] ${message}`, error instanceof Error ? error.message : (error ?? ""));
@@ -69,7 +70,10 @@ export const expandHomePath = Effect.fn(function* (input: string) {
 export const resolveBaseDir = Effect.fn(function* (raw: string | undefined) {
   const { join, resolve } = yield* Path.Path;
   if (!raw || raw.trim().length === 0) {
-    return join(OS.homedir(), ".t3");
+    const newDir = join(OS.homedir(), ".bide");
+    const legacyDir = join(OS.homedir(), ".t3");
+    if (!FS.existsSync(newDir) && FS.existsSync(legacyDir)) return legacyDir;
+    return newDir;
   }
   return resolve(yield* expandHomePath(raw.trim()));
 });

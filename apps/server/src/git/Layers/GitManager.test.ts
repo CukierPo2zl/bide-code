@@ -11,9 +11,9 @@ import type {
   GitPreparePullRequestThreadInput,
   ModelSelection,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@bide/contracts";
 
-import { GitCommandError, GitHubCliError, TextGenerationError } from "@t3tools/contracts";
+import { GitCommandError, GitHubCliError, TextGenerationError } from "@bide/contracts";
 import { type GitManagerShape } from "../Services/GitManager.ts";
 import {
   type GitHubCliShape,

@@ -5,7 +5,7 @@ import {
   type ModelSelection,
   ProjectId,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@bide/contracts";
 import {
   Data,
   Deferred,
@@ -437,7 +437,7 @@ export const makeServerRuntimeStartup = Effect.gen(function* () {
         const startupBrowserTarget = yield* resolveStartupBrowserTarget;
         if (serverConfig.mode !== "desktop") {
           yield* Effect.logInfo(
-            "Authentication required. Open T3 Code using the pairing URL.",
+            "Authentication required. Open BIDE code using the pairing URL.",
           ).pipe(Effect.annotateLogs({ pairingUrl: startupBrowserTarget }));
         }
         yield* runStartupPhase("browser.open", maybeOpenBrowser(startupBrowserTarget));

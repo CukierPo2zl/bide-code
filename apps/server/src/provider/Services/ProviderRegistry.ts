@@ -6,7 +6,7 @@
  *
  * @module ProviderRegistry
  */
-import type { ProviderKind, ServerProvider } from "@t3tools/contracts";
+import type { ProviderKind, ServerProvider } from "@bide/contracts";
 import { Context } from "effect";
 import type { Effect, Stream } from "effect";
 
