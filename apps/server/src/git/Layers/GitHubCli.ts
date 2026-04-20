@@ -1,7 +1,7 @@
 import { Effect, Layer, Result, Schema, SchemaIssue } from "effect";
 import { TrimmedNonEmptyString } from "@bide/contracts";
 
-import { runProcess } from "../../processRunner";
+import { runProcess } from "../../processRunner.ts";
 import { GitHubCliError } from "@bide/contracts";
 import {
   GitHubCli,

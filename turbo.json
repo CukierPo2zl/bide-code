@@ -23,6 +23,7 @@
     "BIDECODE_OTLP_EXPORT_INTERVAL_MS",
     "BIDECODE_OTLP_SERVICE_NAME"
   ],
+  "globalPassThroughEnv": ["PATHEXT"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

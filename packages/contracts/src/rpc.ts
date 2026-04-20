@@ -2,10 +2,13 @@ import { Schema } from "effect";
 import * as Rpc from "effect/unstable/rpc/Rpc";
 import * as RpcGroup from "effect/unstable/rpc/RpcGroup";
 
-import { OpenError, OpenInEditorInput } from "./editor";
-import { AuthAccessStreamEvent } from "./auth";
-import { FilesystemBrowseInput, FilesystemBrowseResult, FilesystemBrowseError } from "./filesystem";
-import { ListAgentsInput, ListAgentsResult, ListAgentsError } from "./agents";
+import { OpenError, OpenInEditorInput } from "./editor.ts";
+import { AuthAccessStreamEvent } from "./auth.ts";
+import {
+  FilesystemBrowseInput,
+  FilesystemBrowseResult,
+  FilesystemBrowseError,
+} from "./filesystem.ts";
 import {
   GitActionProgressEvent,
   GitCheckoutInput,
@@ -30,8 +33,8 @@ import {
   GitStatusInput,
   GitStatusResult,
   GitStatusStreamEvent,
-} from "./git";
-import { KeybindingsConfigError } from "./keybindings";
+} from "./git.ts";
+import { KeybindingsConfigError } from "./keybindings.ts";
 import {
   ClientOrchestrationCommand,
   ORCHESTRATION_WS_METHODS,
@@ -44,7 +47,7 @@ import {
   OrchestrationReplayEventsError,
   OrchestrationReplayEventsInput,
   OrchestrationRpcSchemas,
-} from "./orchestration";
+} from "./orchestration.ts";
 import {
   ProjectSearchEntriesError,
   ProjectSearchEntriesInput,
@@ -52,7 +55,7 @@ import {
   ProjectWriteFileError,
   ProjectWriteFileInput,
   ProjectWriteFileResult,
-} from "./project";
+} from "./project.ts";
 import {
   TerminalClearInput,
   TerminalCloseInput,
@@ -63,7 +66,7 @@ import {
   TerminalRestartInput,
   TerminalSessionSnapshot,
   TerminalWriteInput,
-} from "./terminal";
+} from "./terminal.ts";
 import {
   ServerConfigStreamEvent,
   ServerConfig,
@@ -71,15 +74,8 @@ import {
   ServerProviderUpdatedPayload,
   ServerUpsertKeybindingInput,
   ServerUpsertKeybindingResult,
-} from "./server";
-import { ServerSettings, ServerSettingsError, ServerSettingsPatch } from "./settings";
-import {
-  WORKFLOW_WS_METHODS,
-  WsSubscribeWorkflowsRpc,
-  WsWorkflowDeleteRpc,
-  WsWorkflowListRpc,
-  WsWorkflowSaveRpc,
-} from "./workflow";
+} from "./server.ts";
+import { ServerSettings, ServerSettingsError, ServerSettingsPatch } from "./settings.ts";
 
 export const WS_METHODS = {
   // Project registry methods
@@ -94,9 +90,6 @@ export const WS_METHODS = {
 
   // Filesystem methods
   filesystemBrowse: "filesystem.browse",
-
-  // Agent methods
-  agentsListAgents: "agents.listAgents",
 
   // Git methods
   gitPull: "git.pull",
@@ -126,18 +119,12 @@ export const WS_METHODS = {
   serverGetSettings: "server.getSettings",
   serverUpdateSettings: "server.updateSettings",
 
-  // Workflow methods
-  workflowList: WORKFLOW_WS_METHODS.workflowList,
-  workflowSave: WORKFLOW_WS_METHODS.workflowSave,
-  workflowDelete: WORKFLOW_WS_METHODS.workflowDelete,
-
   // Streaming subscriptions
   subscribeGitStatus: "subscribeGitStatus",
   subscribeTerminalEvents: "subscribeTerminalEvents",
   subscribeServerConfig: "subscribeServerConfig",
   subscribeServerLifecycle: "subscribeServerLifecycle",
   subscribeAuthAccess: "subscribeAuthAccess",
-  subscribeWorkflows: WORKFLOW_WS_METHODS.subscribeWorkflows,
 } as const;
 
 export const WsServerUpsertKeybindingRpc = Rpc.make(WS_METHODS.serverUpsertKeybinding, {
@@ -190,12 +177,6 @@ export const WsFilesystemBrowseRpc = Rpc.make(WS_METHODS.filesystemBrowse, {
   payload: FilesystemBrowseInput,
   success: FilesystemBrowseResult,
   error: FilesystemBrowseError,
-});
-
-export const WsAgentsListAgentsRpc = Rpc.make(WS_METHODS.agentsListAgents, {
-  payload: ListAgentsInput,
-  success: ListAgentsResult,
-  error: ListAgentsError,
 });
 
 export const WsSubscribeGitStatusRpc = Rpc.make(WS_METHODS.subscribeGitStatus, {
@@ -384,7 +365,6 @@ export const WsRpcGroup = RpcGroup.make(
   WsProjectsWriteFileRpc,
   WsShellOpenInEditorRpc,
   WsFilesystemBrowseRpc,
-  WsAgentsListAgentsRpc,
   WsSubscribeGitStatusRpc,
   WsGitPullRpc,
   WsGitRefreshStatusRpc,
@@ -413,8 +393,4 @@ export const WsRpcGroup = RpcGroup.make(
   WsOrchestrationReplayEventsRpc,
   WsOrchestrationSubscribeShellRpc,
   WsOrchestrationSubscribeThreadRpc,
-  WsWorkflowListRpc,
-  WsWorkflowSaveRpc,
-  WsWorkflowDeleteRpc,
-  WsSubscribeWorkflowsRpc,
 );

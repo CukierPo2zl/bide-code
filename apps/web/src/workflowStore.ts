@@ -5,7 +5,7 @@ import { create } from "zustand";
 import { getPrimaryEnvironmentConnection } from "./environments/runtime";
 import type { CanvasEdge, CanvasNode, WorkflowTemplate } from "./types/workflow";
 
-const LEGACY_STORAGE_KEY = "t3code:workflows:v1";
+const LEGACY_STORAGE_KEY = "bidecode:workflows:v1";
 const POSITIONS_STORAGE_KEY = "bidecode:workflows:positions:v1";
 
 // ───────────────────────────────────────────────────────────

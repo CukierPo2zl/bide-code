@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
+import * as NodeOS from "node:os";
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -17,12 +16,9 @@ const MAX_PORT = 65535;
 const DESKTOP_DEV_LOOPBACK_HOST = "127.0.0.1";
 const DEV_PORT_PROBE_HOSTS = ["127.0.0.1", "0.0.0.0", "::1", "::"] as const;
 
-export const DEFAULT_BIDE_HOME = Effect.map(Effect.service(Path.Path), (path) => {
-  const newDir = path.join(homedir(), ".bide");
-  const legacyDir = path.join(homedir(), ".t3");
-  if (!existsSync(newDir) && existsSync(legacyDir)) return legacyDir;
-  return newDir;
-});
+export const DEFAULT_T3_HOME = Effect.map(Effect.service(Path.Path), (path) =>
+  path.join(NodeOS.homedir(), ".t3"),
+);
 
 const MODE_ARGS = {
   dev: [
@@ -116,7 +112,7 @@ function resolveBaseDir(baseDir: string | undefined): Effect.Effect<string, neve
       return path.resolve(configured);
     }
 
-    return yield* DEFAULT_BIDE_HOME;
+    return yield* DEFAULT_T3_HOME;
   });
 }
 
@@ -125,7 +121,7 @@ interface CreateDevRunnerEnvInput {
   readonly baseEnv: NodeJS.ProcessEnv;
   readonly serverOffset: number;
   readonly webOffset: number;
-  readonly bideHome: string | undefined;
+  readonly t3Home: string | undefined;
   readonly noBrowser: boolean | undefined;
   readonly autoBootstrapProjectFromCwd: boolean | undefined;
   readonly logWebSocketEvents: boolean | undefined;
@@ -139,7 +135,7 @@ export function createDevRunnerEnv({
   baseEnv,
   serverOffset,
   webOffset,
-  bideHome,
+  t3Home,
   noBrowser,
   autoBootstrapProjectFromCwd,
   logWebSocketEvents,
@@ -150,7 +146,7 @@ export function createDevRunnerEnv({
   return Effect.gen(function* () {
     const serverPort = port ?? BASE_SERVER_PORT + serverOffset;
     const webPort = BASE_WEB_PORT + webOffset;
-    const resolvedBaseDir = yield* resolveBaseDir(bideHome);
+    const resolvedBaseDir = yield* resolveBaseDir(t3Home);
     const isDesktopMode = mode === "dev:desktop";
 
     const output: NodeJS.ProcessEnv = {
@@ -368,7 +364,7 @@ export function resolveModePortOffsets<R = NetService>({
 
 interface DevRunnerCliInput {
   readonly mode: DevMode;
-  readonly bideHome: string | undefined;
+  readonly t3Home: string | undefined;
   readonly noBrowser: boolean | undefined;
   readonly autoBootstrapProjectFromCwd: boolean | undefined;
   readonly logWebSocketEvents: boolean | undefined;
@@ -412,7 +408,7 @@ export function runDevRunnerWithInput(input: DevRunnerCliInput) {
       baseEnv: process.env,
       serverOffset,
       webOffset,
-      bideHome: input.bideHome,
+      t3Home: input.t3Home,
       noBrowser: input.noBrowser,
       autoBootstrapProjectFromCwd: input.autoBootstrapProjectFromCwd,
       logWebSocketEvents: input.logWebSocketEvents,
@@ -475,7 +471,7 @@ const devRunnerCli = Command.make("dev-runner", {
   mode: Argument.choice("mode", DEV_RUNNER_MODES).pipe(
     Argument.withDescription("Development mode to run."),
   ),
-  bideHome: Flag.string("home-dir").pipe(
+  t3Home: Flag.string("home-dir").pipe(
     Flag.withDescription("Base directory for all BIDE code data (equivalent to BIDECODE_HOME)."),
     Flag.withFallbackConfig(optionalStringConfig("BIDECODE_HOME")),
   ),
@@ -527,11 +523,10 @@ const cliRuntimeLayer = Layer.mergeAll(
   NetService.layer,
 );
 
-const runtimeProgram = Command.run(devRunnerCli, { version: "0.0.0" }).pipe(
-  Effect.scoped,
-  Effect.provide(cliRuntimeLayer),
-);
-
 if (import.meta.main) {
-  NodeRuntime.runMain(runtimeProgram);
+  Command.run(devRunnerCli, { version: "0.0.0" }).pipe(
+    Effect.scoped,
+    Effect.provide(cliRuntimeLayer),
+    NodeRuntime.runMain,
+  );
 }

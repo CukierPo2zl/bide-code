@@ -18,57 +18,51 @@ import {
   ProjectWriteFileError,
   OrchestrationReplayEventsError,
   FilesystemBrowseError,
-  ListAgentsError,
   ThreadId,
   type TerminalEvent,
-  WORKFLOW_WS_METHODS,
   WS_METHODS,
-  type WorkflowSubscribeEvent,
-  WorkflowServiceError,
   WsRpcGroup,
 } from "@bide/contracts";
 import { clamp } from "effect/Number";
 import { HttpRouter, HttpServerRequest } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 
-import { CheckpointDiffQuery } from "./checkpointing/Services/CheckpointDiffQuery";
-import { ServerConfig } from "./config";
-import { GitCore } from "./git/Services/GitCore";
-import { GitManager } from "./git/Services/GitManager";
-import { GitStatusBroadcaster } from "./git/Services/GitStatusBroadcaster";
-import { Keybindings } from "./keybindings";
-import { Open, resolveAvailableEditors } from "./open";
-import { normalizeDispatchCommand } from "./orchestration/Normalizer";
-import { OrchestrationEngineService } from "./orchestration/Services/OrchestrationEngine";
-import { ProjectionSnapshotQuery } from "./orchestration/Services/ProjectionSnapshotQuery";
+import { CheckpointDiffQuery } from "./checkpointing/Services/CheckpointDiffQuery.ts";
+import { ServerConfig } from "./config.ts";
+import { GitCore } from "./git/Services/GitCore.ts";
+import { GitManager } from "./git/Services/GitManager.ts";
+import { GitStatusBroadcaster } from "./git/Services/GitStatusBroadcaster.ts";
+import { Keybindings } from "./keybindings.ts";
+import { Open, resolveAvailableEditors } from "./open.ts";
+import { normalizeDispatchCommand } from "./orchestration/Normalizer.ts";
+import { OrchestrationEngineService } from "./orchestration/Services/OrchestrationEngine.ts";
+import { ProjectionSnapshotQuery } from "./orchestration/Services/ProjectionSnapshotQuery.ts";
 import {
   observeRpcEffect,
   observeRpcStream,
   observeRpcStreamEffect,
-} from "./observability/RpcInstrumentation";
-import { ProviderRegistry } from "./provider/Services/ProviderRegistry";
-import { ServerLifecycleEvents } from "./serverLifecycleEvents";
-import { ServerRuntimeStartup } from "./serverRuntimeStartup";
-import { ServerSettingsService } from "./serverSettings";
-import { TerminalManager } from "./terminal/Services/Manager";
-import { WorkspaceEntries } from "./workspace/Services/WorkspaceEntries";
-import { WorkspaceFileSystem } from "./workspace/Services/WorkspaceFileSystem";
-import { AgentDefinitions } from "./agents/Services/AgentDefinitions";
-import { WorkspacePathOutsideRootError } from "./workspace/Services/WorkspacePaths";
-import { ProjectSetupScriptRunner } from "./project/Services/ProjectSetupScriptRunner";
-import { RepositoryIdentityResolver } from "./project/Services/RepositoryIdentityResolver";
-import { ServerEnvironment } from "./environment/Services/ServerEnvironment";
-import { ServerAuth } from "./auth/Services/ServerAuth";
+} from "./observability/RpcInstrumentation.ts";
+import { ProviderRegistry } from "./provider/Services/ProviderRegistry.ts";
+import { ServerLifecycleEvents } from "./serverLifecycleEvents.ts";
+import { ServerRuntimeStartup } from "./serverRuntimeStartup.ts";
+import { ServerSettingsService } from "./serverSettings.ts";
+import { TerminalManager } from "./terminal/Services/Manager.ts";
+import { WorkspaceEntries } from "./workspace/Services/WorkspaceEntries.ts";
+import { WorkspaceFileSystem } from "./workspace/Services/WorkspaceFileSystem.ts";
+import { WorkspacePathOutsideRootError } from "./workspace/Services/WorkspacePaths.ts";
+import { ProjectSetupScriptRunner } from "./project/Services/ProjectSetupScriptRunner.ts";
+import { RepositoryIdentityResolver } from "./project/Services/RepositoryIdentityResolver.ts";
+import { ServerEnvironment } from "./environment/Services/ServerEnvironment.ts";
+import { ServerAuth } from "./auth/Services/ServerAuth.ts";
 import {
   BootstrapCredentialService,
   type BootstrapCredentialChange,
-} from "./auth/Services/BootstrapCredentialService";
+} from "./auth/Services/BootstrapCredentialService.ts";
 import {
   SessionCredentialService,
   type SessionCredentialChange,
-} from "./auth/Services/SessionCredentialService";
-import { respondToAuthError } from "./auth/http";
-import { WorkflowTemplateService } from "./workflow/WorkflowTemplateService";
+} from "./auth/Services/SessionCredentialService.ts";
+import { respondToAuthError } from "./auth/http.ts";
 
 function isThreadDetailEvent(event: OrchestrationEvent): event is Extract<
   OrchestrationEvent,
@@ -153,14 +147,12 @@ const makeWsRpcLayer = (currentSessionId: AuthSessionId) =>
       const startup = yield* ServerRuntimeStartup;
       const workspaceEntries = yield* WorkspaceEntries;
       const workspaceFileSystem = yield* WorkspaceFileSystem;
-      const agentDefinitions = yield* AgentDefinitions;
       const projectSetupScriptRunner = yield* ProjectSetupScriptRunner;
       const repositoryIdentityResolver = yield* RepositoryIdentityResolver;
       const serverEnvironment = yield* ServerEnvironment;
       const serverAuth = yield* ServerAuth;
       const bootstrapCredentials = yield* BootstrapCredentialService;
       const sessions = yield* SessionCredentialService;
-      const workflowTemplateService = yield* WorkflowTemplateService;
       const serverCommandId = (tag: string) =>
         CommandId.make(`server:${tag}:${crypto.randomUUID()}`);
 
@@ -558,8 +550,45 @@ const makeWsRpcLayer = (currentSessionId: AuthSessionId) =>
             ORCHESTRATION_WS_METHODS.dispatchCommand,
             Effect.gen(function* () {
               const normalizedCommand = yield* normalizeDispatchCommand(command);
+              const shouldStopSessionAfterArchive =
+                normalizedCommand.type === "thread.archive"
+                  ? yield* projectionSnapshotQuery
+                      .getThreadShellById(normalizedCommand.threadId)
+                      .pipe(
+                        Effect.map(
+                          Option.match({
+                            onNone: () => false,
+                            onSome: (thread) =>
+                              thread.session !== null && thread.session.status !== "stopped",
+                          }),
+                        ),
+                        Effect.catch(() => Effect.succeed(false)),
+                      )
+                  : false;
               const result = yield* dispatchNormalizedCommand(normalizedCommand);
               if (normalizedCommand.type === "thread.archive") {
+                if (shouldStopSessionAfterArchive) {
+                  yield* Effect.gen(function* () {
+                    const stopCommand = yield* normalizeDispatchCommand({
+                      type: "thread.session.stop",
+                      commandId: CommandId.make(
+                        `session-stop-for-archive:${normalizedCommand.commandId}`,
+                      ),
+                      threadId: normalizedCommand.threadId,
+                      createdAt: new Date().toISOString(),
+                    });
+
+                    yield* dispatchNormalizedCommand(stopCommand);
+                  }).pipe(
+                    Effect.catchCause((cause) =>
+                      Effect.logWarning("failed to stop provider session during archive", {
+                        threadId: normalizedCommand.threadId,
+                        cause,
+                      }),
+                    ),
+                  );
+                }
+
                 yield* terminalManager.close({ threadId: normalizedCommand.threadId }).pipe(
                   Effect.catch((error) =>
                     Effect.logWarning("failed to close thread terminals after archive", {
@@ -791,20 +820,6 @@ const makeWsRpcLayer = (currentSessionId: AuthSessionId) =>
             ),
             { "rpc.aggregate": "workspace" },
           ),
-        [WS_METHODS.agentsListAgents]: (input) =>
-          observeRpcEffect(
-            WS_METHODS.agentsListAgents,
-            agentDefinitions.listAgents(input).pipe(
-              Effect.mapError(
-                (cause) =>
-                  new ListAgentsError({
-                    message: cause.detail,
-                    cause,
-                  }),
-              ),
-            ),
-            { "rpc.aggregate": "agents" },
-          ),
         [WS_METHODS.subscribeGitStatus]: (input) =>
           observeRpcStream(
             WS_METHODS.subscribeGitStatus,
@@ -1006,51 +1021,6 @@ const makeWsRpcLayer = (currentSessionId: AuthSessionId) =>
               return Stream.concat(Stream.fromIterable(snapshotEvents), liveEvents);
             }),
             { "rpc.aggregate": "server" },
-          ),
-        [WORKFLOW_WS_METHODS.workflowList]: (_input) =>
-          observeRpcEffect(
-            WORKFLOW_WS_METHODS.workflowList,
-            workflowTemplateService.list().pipe(
-              Effect.map((templates) => templates as ReadonlyArray<typeof templates[number]>),
-            ),
-            { "rpc.aggregate": "workflow" },
-          ),
-        [WORKFLOW_WS_METHODS.workflowSave]: (input) =>
-          observeRpcEffect(
-            WORKFLOW_WS_METHODS.workflowSave,
-            workflowTemplateService.save(input),
-            { "rpc.aggregate": "workflow" },
-          ),
-        [WORKFLOW_WS_METHODS.workflowDelete]: (input) =>
-          observeRpcEffect(
-            WORKFLOW_WS_METHODS.workflowDelete,
-            workflowTemplateService.delete(input.id),
-            { "rpc.aggregate": "workflow" },
-          ),
-        [WORKFLOW_WS_METHODS.subscribeWorkflows]: (_input) =>
-          observeRpcStreamEffect(
-            WORKFLOW_WS_METHODS.subscribeWorkflows,
-            Effect.gen(function* () {
-              const initial = yield* workflowTemplateService.list().pipe(
-                Effect.mapError(
-                  (cause) =>
-                    new WorkflowServiceError({
-                      message: "Failed to load workflow snapshot",
-                      cause,
-                    }),
-                ),
-              );
-              const liveStream: Stream.Stream<WorkflowSubscribeEvent> =
-                workflowTemplateService.changes;
-              return Stream.concat(
-                Stream.make({
-                  kind: "snapshot" as const,
-                  templates: initial,
-                } satisfies WorkflowSubscribeEvent),
-                liveStream,
-              );
-            }),
-            { "rpc.aggregate": "workflow" },
           ),
         [WS_METHODS.subscribeAuthAccess]: (_input) =>
           observeRpcStreamEffect(
