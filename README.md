@@ -1,11 +1,11 @@
-# T3 Code
+# BIDE code
 
-T3 Code is a minimal web GUI for coding agents (currently Codex and Claude, more coming soon).
+BIDE code is a minimal web GUI for coding agents (currently Codex and Claude, more coming soon).
 
 ## Installation
 
 > [!WARNING]
-> T3 Code currently supports Codex and Claude.
+> BIDE code currently supports Codex and Claude.
 > Install and authenticate at least one provider before use:
 >
 > - Codex: install [Codex CLI](https://github.com/openai/codex) and run `codex login`
@@ -19,7 +19,7 @@ npx t3
 
 ### Desktop app
 
-Install the latest version of the desktop app from [GitHub Releases](https://github.com/pingdotgg/t3code/releases), or from your favorite package registry:
+Install the latest version of the desktop app from [GitHub Releases](https://github.com/pingdotgg/bidecode/releases), or from your favorite package registry:
 
 #### Windows (`winget`)
 
@@ -36,7 +36,7 @@ brew install --cask t3-code
 #### Arch Linux (AUR)
 
 ```bash
-yay -S t3code-bin
+yay -S bidecode-bin
 ```
 
 ## Some notes
