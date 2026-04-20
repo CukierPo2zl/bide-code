@@ -1,6 +1,9 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { AgentDetailView } from "../components/AgentDetailView";
+import { WorkflowCanvas } from "../components/workflow/WorkflowCanvas";
+import { WorkflowsDefaultView } from "../components/workflow/WorkflowsDefaultView";
 import { useCommandPaletteStore } from "../commandPaletteStore";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
 import {
@@ -14,6 +17,8 @@ import { useThreadSelectionStore } from "../threadSelectionStore";
 import { resolveSidebarNewThreadEnvMode } from "~/components/Sidebar.logic";
 import { useSettings } from "~/hooks/useSettings";
 import { useServerKeybindings } from "~/rpc/serverState";
+import { useUiStateStore } from "~/uiStateStore";
+import { useWorkflowStore } from "~/workflowStore";
 
 function ChatRouteGlobalShortcuts() {
   const clearSelection = useThreadSelectionStore((state) => state.clearSelection);
@@ -98,10 +103,30 @@ function ChatRouteGlobalShortcuts() {
 }
 
 function ChatRouteLayout() {
+  const sidebarTab = useUiStateStore((s) => s.sidebarTab);
+  const selectedAgent = useUiStateStore((s) => s.selectedAgent);
+  const activeTemplateId = useWorkflowStore((s) => s.activeTemplateId);
+
+  // Main-pane content is chosen by the sidebar tab. The chat route stays
+  // mounted on the router while the workflows pane is shown, so switching
+  // back to "threads" transparently restores the previously-open chat.
+  let content: React.ReactNode;
+  if (sidebarTab === "workflows") {
+    content = activeTemplateId ? (
+      <WorkflowCanvas templateId={activeTemplateId} />
+    ) : (
+      <WorkflowsDefaultView />
+    );
+  } else if (selectedAgent) {
+    content = <AgentDetailView agent={selectedAgent} />;
+  } else {
+    content = <Outlet />;
+  }
+
   return (
     <>
       <ChatRouteGlobalShortcuts />
-      <Outlet />
+      {content}
     </>
   );
 }

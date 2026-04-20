@@ -18,16 +18,16 @@ import {
   ProviderInteractionMode,
   RuntimeMode,
   TerminalOpenInput,
-} from "@t3tools/contracts";
+} from "@bide/contracts";
 import {
   parseScopedThreadKey,
   scopedThreadKey,
   scopeProjectRef,
   scopeThreadRef,
-} from "@t3tools/client-runtime";
-import { applyClaudePromptEffortPrefix } from "@t3tools/shared/model";
-import { projectScriptCwd, projectScriptRuntimeEnv } from "@t3tools/shared/projectScripts";
-import { truncate } from "@t3tools/shared/String";
+} from "@bide/client-runtime";
+import { applyClaudePromptEffortPrefix } from "@bide/shared/model";
+import { projectScriptCwd, projectScriptRuntimeEnv } from "@bide/shared/projectScripts";
+import { truncate } from "@bide/shared/String";
 import { Debouncer } from "@tanstack/react-pacer";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
@@ -91,7 +91,7 @@ import {
 import { useTheme } from "../hooks/useTheme";
 import { useTurnDiffSummaries } from "../hooks/useTurnDiffSummaries";
 import { useCommandPaletteStore } from "../commandPaletteStore";
-import { buildTemporaryWorktreeBranchName } from "@t3tools/shared/git";
+import { buildTemporaryWorktreeBranchName } from "@bide/shared/git";
 import { BranchToolbar } from "./BranchToolbar";
 import { resolveShortcutCommand, shortcutLabelForCommand } from "../keybindings";
 import PlanSidebar from "./PlanSidebar";
@@ -131,6 +131,10 @@ import {
 } from "../lib/terminalContext";
 import { selectThreadTerminalState, useTerminalStateStore } from "../terminalStateStore";
 import { ChatComposer, type ChatComposerHandle } from "./chat/ChatComposer";
+import { buildWorkflowOrchestrationPrompt } from "~/lib/workflowPrompt";
+import { fetchArtifactContent } from "~/hooks/useArtifactFileUpload";
+import type { ArtifactNodeData } from "~/types/workflow";
+import { useWorkflowStore } from "~/workflowStore";
 import { ExpandedImageDialog } from "./chat/ExpandedImageDialog";
 import { PullRequestThreadDialog } from "./PullRequestThreadDialog";
 import { MessagesTimeline } from "./chat/MessagesTimeline";
@@ -178,6 +182,25 @@ const EMPTY_ACTIVITIES: OrchestrationThreadActivity[] = [];
 const EMPTY_PROPOSED_PLANS: Thread["proposedPlans"] = [];
 const EMPTY_PROVIDERS: ServerProvider[] = [];
 const EMPTY_PENDING_USER_INPUT_ANSWERS: Record<string, PendingUserInputDraftAnswer> = {};
+
+async function resolveArtifactContents(
+  template: import("~/types/workflow").WorkflowTemplate,
+): Promise<Map<string, string>> {
+  const contents = new Map<string, string>();
+  const artifactNodes = template.nodes.filter((n) => n.type === "artifact");
+  await Promise.all(
+    artifactNodes.map(async (node) => {
+      const data = node.data as ArtifactNodeData;
+      if (data.fileAttachment) {
+        const text = await fetchArtifactContent(data.fileAttachment.id);
+        if (text) contents.set(node.id, text);
+      } else if (data.content) {
+        contents.set(node.id, data.content);
+      }
+    }),
+  );
+  return contents;
+}
 
 type ThreadPlanCatalogEntry = Pick<Thread, "id" | "proposedPlans">;
 
@@ -602,6 +625,17 @@ export default function ChatView(props: ChatViewProps) {
   const markThreadVisited = useUiStateStore((store) => store.markThreadVisited);
   const activeThreadLastVisitedAt = useUiStateStore((store) =>
     routeKind === "server" ? store.threadLastVisitedAtById[routeThreadKey] : undefined,
+  );
+  const selectedWorkflowTemplateId = useUiStateStore((store) =>
+    store.workflowTemplateIdByThreadId[routeThreadKey] ?? null,
+  );
+  const workflowTemplates = useWorkflowStore((store) => store.templates);
+  const selectedWorkflowTemplate = useMemo(
+    () =>
+      selectedWorkflowTemplateId
+        ? workflowTemplates.find((t) => t.id === selectedWorkflowTemplateId) ?? null
+        : null,
+    [selectedWorkflowTemplateId, workflowTemplates],
   );
   const settings = useSettings();
   const setStickyComposerModelSelection = useComposerDraftStore(
@@ -2430,12 +2464,25 @@ export default function ChatView(props: ChatViewProps) {
     );
     const messageIdForSend = newMessageId();
     const messageCreatedAt = new Date().toISOString();
-    const outgoingMessageText = formatOutgoingPrompt({
+    const formattedOutgoingText = formatOutgoingPrompt({
       provider: ctxSelectedProvider,
       model: ctxSelectedModel,
       models: ctxSelectedProviderModels,
       effort: ctxSelectedPromptEffort,
       text: messageTextForSend || IMAGE_ONLY_BOOTSTRAP_PROMPT,
+    });
+    let outgoingMessageText = formattedOutgoingText;
+    if (selectedWorkflowTemplate) {
+      const artifactContents = await resolveArtifactContents(selectedWorkflowTemplate);
+      outgoingMessageText = buildWorkflowOrchestrationPrompt(
+        selectedWorkflowTemplate,
+        formattedOutgoingText,
+        artifactContents,
+      );
+    }
+    console.log("[ChatView] outgoing prompt (onSend):", {
+      workflowTemplate: selectedWorkflowTemplate?.name ?? null,
+      text: outgoingMessageText,
     });
     const turnAttachmentsPromise = Promise.all(
       composerImagesSnapshot.map(async (image) => ({
@@ -2842,12 +2889,25 @@ export default function ChatView(props: ChatViewProps) {
       const threadIdForSend = activeThread.id;
       const messageIdForSend = newMessageId();
       const messageCreatedAt = new Date().toISOString();
-      const outgoingMessageText = formatOutgoingPrompt({
+      const formattedOutgoingText = formatOutgoingPrompt({
         provider: ctxSelectedProvider,
         model: ctxSelectedModel,
         models: ctxSelectedProviderModels,
         effort: ctxSelectedPromptEffort,
         text: trimmed,
+      });
+      let outgoingMessageText = formattedOutgoingText;
+      if (selectedWorkflowTemplate) {
+        const artifactContents = await resolveArtifactContents(selectedWorkflowTemplate);
+        outgoingMessageText = buildWorkflowOrchestrationPrompt(
+          selectedWorkflowTemplate,
+          formattedOutgoingText,
+          artifactContents,
+        );
+      }
+      console.log("[ChatView] outgoing prompt (onSubmitPlanFollowUp):", {
+        workflowTemplate: selectedWorkflowTemplate?.name ?? null,
+        text: outgoingMessageText,
       });
 
       sendInFlightRef.current = true;

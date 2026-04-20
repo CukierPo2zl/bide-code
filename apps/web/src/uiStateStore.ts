@@ -1,7 +1,8 @@
 import { Debouncer } from "@tanstack/react-pacer";
+import type { AgentDefinition } from "@bide/contracts";
 import { create } from "zustand";
 
-const PERSISTED_STATE_KEY = "t3code:ui-state:v1";
+const PERSISTED_STATE_KEY = "bidecode:ui-state:v1";
 const LEGACY_PERSISTED_STATE_KEYS = [
   "t3code:renderer-state:v8",
   "t3code:renderer-state:v7",
@@ -15,10 +16,14 @@ const LEGACY_PERSISTED_STATE_KEYS = [
   "codething:renderer-state:v1",
 ] as const;
 
+export type SidebarTab = "threads" | "workflows";
+
 interface PersistedUiState {
   expandedProjectCwds?: string[];
   projectOrderCwds?: string[];
   threadChangedFilesExpandedById?: Record<string, Record<string, boolean>>;
+  sidebarTab?: SidebarTab;
+  workflowTemplateIdByThreadId?: Record<string, string>;
 }
 
 export interface UiProjectState {
@@ -31,7 +36,11 @@ export interface UiThreadState {
   threadChangedFilesExpandedById: Record<string, Record<string, boolean>>;
 }
 
-export interface UiState extends UiProjectState, UiThreadState {}
+export interface UiState extends UiProjectState, UiThreadState {
+  sidebarTab: SidebarTab;
+  selectedAgent: AgentDefinition | null;
+  workflowTemplateIdByThreadId: Record<string, string>;
+}
 
 export interface SyncProjectInput {
   key: string;
@@ -48,6 +57,9 @@ const initialState: UiState = {
   projectOrder: [],
   threadLastVisitedAtById: {},
   threadChangedFilesExpandedById: {},
+  sidebarTab: "threads",
+  selectedAgent: null,
+  workflowTemplateIdByThreadId: {},
 };
 
 const persistedExpandedProjectCwds = new Set<string>();
@@ -79,10 +91,29 @@ function readPersistedState(): UiState {
       threadChangedFilesExpandedById: sanitizePersistedThreadChangedFilesExpanded(
         parsed.threadChangedFilesExpandedById,
       ),
+      sidebarTab: parsed.sidebarTab === "workflows" ? "workflows" : "threads",
+      workflowTemplateIdByThreadId: sanitizePersistedWorkflowTemplateByThread(
+        parsed.workflowTemplateIdByThreadId,
+      ),
     };
   } catch {
     return initialState;
   }
+}
+
+function sanitizePersistedWorkflowTemplateByThread(
+  value: PersistedUiState["workflowTemplateIdByThreadId"],
+): Record<string, string> {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+  const next: Record<string, string> = {};
+  for (const [threadId, templateId] of Object.entries(value)) {
+    if (threadId && typeof templateId === "string" && templateId.length > 0) {
+      next[threadId] = templateId;
+    }
+  }
+  return next;
 }
 
 function sanitizePersistedThreadChangedFilesExpanded(
@@ -157,6 +188,8 @@ function persistState(state: UiState): void {
         expandedProjectCwds,
         projectOrderCwds,
         threadChangedFilesExpandedById,
+        sidebarTab: state.sidebarTab,
+        workflowTemplateIdByThreadId: state.workflowTemplateIdByThreadId,
       } satisfies PersistedUiState),
     );
     if (!legacyKeysCleanedUp) {
@@ -328,12 +361,18 @@ export function syncThreads(state: UiState, threads: readonly SyncThreadInput[])
       retainedThreadIds.has(threadId),
     ),
   );
+  const nextWorkflowTemplateIdByThreadId = Object.fromEntries(
+    Object.entries(state.workflowTemplateIdByThreadId).filter(([threadId]) =>
+      retainedThreadIds.has(threadId),
+    ),
+  );
   if (
     recordsEqual(state.threadLastVisitedAtById, nextThreadLastVisitedAtById) &&
     nestedBooleanRecordsEqual(
       state.threadChangedFilesExpandedById,
       nextThreadChangedFilesExpandedById,
-    )
+    ) &&
+    recordsEqual(state.workflowTemplateIdByThreadId, nextWorkflowTemplateIdByThreadId)
   ) {
     return state;
   }
@@ -341,6 +380,7 @@ export function syncThreads(state: UiState, threads: readonly SyncThreadInput[])
     ...state,
     threadLastVisitedAtById: nextThreadLastVisitedAtById,
     threadChangedFilesExpandedById: nextThreadChangedFilesExpandedById,
+    workflowTemplateIdByThreadId: nextWorkflowTemplateIdByThreadId,
   };
 }
 
@@ -393,17 +433,47 @@ export function markThreadUnread(
 export function clearThreadUi(state: UiState, threadId: string): UiState {
   const hasVisitedState = threadId in state.threadLastVisitedAtById;
   const hasChangedFilesState = threadId in state.threadChangedFilesExpandedById;
-  if (!hasVisitedState && !hasChangedFilesState) {
+  const hasWorkflowTemplate = threadId in state.workflowTemplateIdByThreadId;
+  if (!hasVisitedState && !hasChangedFilesState && !hasWorkflowTemplate) {
     return state;
   }
   const nextThreadLastVisitedAtById = { ...state.threadLastVisitedAtById };
   const nextThreadChangedFilesExpandedById = { ...state.threadChangedFilesExpandedById };
+  const nextWorkflowTemplateIdByThreadId = { ...state.workflowTemplateIdByThreadId };
   delete nextThreadLastVisitedAtById[threadId];
   delete nextThreadChangedFilesExpandedById[threadId];
+  delete nextWorkflowTemplateIdByThreadId[threadId];
   return {
     ...state,
     threadLastVisitedAtById: nextThreadLastVisitedAtById,
     threadChangedFilesExpandedById: nextThreadChangedFilesExpandedById,
+    workflowTemplateIdByThreadId: nextWorkflowTemplateIdByThreadId,
+  };
+}
+
+export function setThreadWorkflowTemplate(
+  state: UiState,
+  threadId: string,
+  templateId: string | null,
+): UiState {
+  const current = state.workflowTemplateIdByThreadId[threadId];
+  if (templateId === null) {
+    if (current === undefined) {
+      return state;
+    }
+    const next = { ...state.workflowTemplateIdByThreadId };
+    delete next[threadId];
+    return { ...state, workflowTemplateIdByThreadId: next };
+  }
+  if (current === templateId) {
+    return state;
+  }
+  return {
+    ...state,
+    workflowTemplateIdByThreadId: {
+      ...state.workflowTemplateIdByThreadId,
+      [threadId]: templateId,
+    },
   };
 }
 
@@ -536,6 +606,9 @@ interface UiStateStore extends UiState {
     draggedProjectIds: readonly string[],
     targetProjectIds: readonly string[],
   ) => void;
+  setSidebarTab: (tab: SidebarTab) => void;
+  setSelectedAgent: (agent: AgentDefinition | null) => void;
+  setThreadWorkflowTemplate: (threadId: string, templateId: string | null) => void;
 }
 
 export const useUiStateStore = create<UiStateStore>((set) => ({
@@ -554,6 +627,10 @@ export const useUiStateStore = create<UiStateStore>((set) => ({
     set((state) => setProjectExpanded(state, projectId, expanded)),
   reorderProjects: (draggedProjectIds, targetProjectIds) =>
     set((state) => reorderProjects(state, draggedProjectIds, targetProjectIds)),
+  setSidebarTab: (tab) => set({ sidebarTab: tab }),
+  setSelectedAgent: (agent) => set({ selectedAgent: agent }),
+  setThreadWorkflowTemplate: (threadId, templateId) =>
+    set((state) => setThreadWorkflowTemplate(state, threadId, templateId)),
 }));
 
 useUiStateStore.subscribe((state) => debouncedPersistState.maybeExecute(state));

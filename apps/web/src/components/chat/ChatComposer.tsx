@@ -11,12 +11,13 @@ import type {
   ServerProvider,
   ThreadId,
   TurnId,
-} from "@t3tools/contracts";
+} from "@bide/contracts";
 import {
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
-} from "@t3tools/contracts";
-import { normalizeModelSlug } from "@t3tools/shared/model";
+} from "@bide/contracts";
+import { normalizeModelSlug } from "@bide/shared/model";
+import { scopedThreadKey } from "@bide/client-runtime";
 import {
   forwardRef,
   memo,
@@ -74,6 +75,7 @@ import {
   renderProviderTraitsMenuContent,
   renderProviderTraitsPicker,
 } from "./composerProviderRegistry";
+import { ComposerWorkflowPicker } from "./ComposerWorkflowPicker";
 import { ContextWindowMeter } from "./ContextWindowMeter";
 import { buildExpandedImagePreview, type ExpandedImagePreview } from "./ExpandedImagePreview";
 import { basenameOfPath } from "../../vscode-icons";
@@ -95,7 +97,7 @@ import {
 } from "lucide-react";
 import { proposedPlanTitle } from "../../proposedPlan";
 import { resolveSelectableProvider, getProviderModels } from "../../providerModels";
-import type { UnifiedSettings } from "@t3tools/contracts/settings";
+import type { UnifiedSettings } from "@bide/contracts/settings";
 import type { SessionPhase, Thread } from "../../types";
 import type { PendingUserInputDraftAnswer } from "../../pendingUserInput";
 import type { PendingApproval, PendingUserInput } from "../../session-logic";
@@ -1925,6 +1927,12 @@ export const ChatComposer = memo(
                       : {})}
                     onProviderModelChange={onProviderModelSelect}
                   />
+
+                  <Separator
+                    orientation="vertical"
+                    className="mx-0.5 hidden h-4 sm:block"
+                  />
+                  <ComposerWorkflowPicker threadKey={scopedThreadKey(routeThreadRef)} />
 
                   {isComposerFooterCompact ? (
                     <CompactComposerControlsMenu

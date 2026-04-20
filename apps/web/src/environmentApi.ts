@@ -1,4 +1,4 @@
-import type { EnvironmentId, EnvironmentApi } from "@t3tools/contracts";
+import type { EnvironmentId, EnvironmentApi } from "@bide/contracts";
 
 import type { WsRpcClient } from "./rpc/wsRpcClient";
 import { readEnvironmentConnection } from "./environments/runtime";
@@ -23,6 +23,9 @@ export function createEnvironmentApi(rpcClient: WsRpcClient): EnvironmentApi {
     filesystem: {
       browse: rpcClient.filesystem.browse,
     },
+    agents: {
+      listAgents: rpcClient.agents.listAgents,
+    },
     git: {
       pull: rpcClient.git.pull,
       refreshStatus: rpcClient.git.refreshStatus,
@@ -44,6 +47,12 @@ export function createEnvironmentApi(rpcClient: WsRpcClient): EnvironmentApi {
         rpcClient.orchestration.subscribeShell(callback, options),
       subscribeThread: (input, callback, options) =>
         rpcClient.orchestration.subscribeThread(input, callback, options),
+    },
+    workflow: {
+      list: () => rpcClient.workflow.list(),
+      save: (template) => rpcClient.workflow.save(template),
+      delete: (input) => rpcClient.workflow.delete(input),
+      subscribe: (callback, options) => rpcClient.workflow.subscribe(callback, options),
     },
   };
 }
