@@ -9,7 +9,8 @@ import { scopeThreadRef } from "@bide/client-runtime";
 import { memo } from "react";
 import GitActionsControl from "../GitActionsControl";
 import { type DraftId } from "~/composerDraftStore";
-import { DiffIcon, TerminalSquareIcon } from "lucide-react";
+import { DiffIcon, MessageSquareIcon, NetworkIcon, TerminalSquareIcon } from "lucide-react";
+import type { ThreadViewMode } from "~/uiStateStore";
 import { Badge } from "../ui/badge";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import ProjectScriptsControl, { type NewProjectScriptInput } from "../ProjectScriptsControl";
@@ -35,6 +36,9 @@ interface ChatHeaderProps {
   diffToggleShortcutLabel: string | null;
   gitCwd: string | null;
   diffOpen: boolean;
+  viewMode: ThreadViewMode;
+  viewToggleAvailable: boolean;
+  onSetViewMode: (mode: ThreadViewMode) => void;
   onRunProjectScript: (script: ProjectScript) => void;
   onAddProjectScript: (input: NewProjectScriptInput) => Promise<void>;
   onUpdateProjectScript: (scriptId: string, input: NewProjectScriptInput) => Promise<void>;
@@ -61,6 +65,9 @@ export const ChatHeader = memo(function ChatHeader({
   diffToggleShortcutLabel,
   gitCwd,
   diffOpen,
+  viewMode,
+  viewToggleAvailable,
+  onSetViewMode,
   onRunProjectScript,
   onAddProjectScript,
   onUpdateProjectScript,
@@ -114,6 +121,52 @@ export const ChatHeader = memo(function ChatHeader({
             activeThreadRef={scopeThreadRef(activeThreadEnvironmentId, activeThreadId)}
             {...(draftId ? { draftId } : {})}
           />
+        )}
+        {viewToggleAvailable && (
+          <div
+            className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-border bg-muted/20 p-0.5"
+            role="group"
+            aria-label="Thread view mode"
+          >
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Toggle
+                    className="size-6 rounded-sm"
+                    pressed={viewMode === "chat"}
+                    onPressedChange={(pressed) => {
+                      if (pressed) onSetViewMode("chat");
+                    }}
+                    aria-label="Chat view"
+                    variant="default"
+                    size="xs"
+                  >
+                    <MessageSquareIcon className="size-3" />
+                  </Toggle>
+                }
+              />
+              <TooltipPopup side="bottom">Chat view</TooltipPopup>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Toggle
+                    className="size-6 rounded-sm"
+                    pressed={viewMode === "graph"}
+                    onPressedChange={(pressed) => {
+                      if (pressed) onSetViewMode("graph");
+                    }}
+                    aria-label="Graph view"
+                    variant="default"
+                    size="xs"
+                  >
+                    <NetworkIcon className="size-3" />
+                  </Toggle>
+                }
+              />
+              <TooltipPopup side="bottom">Graph view — plan a multi-thread workflow</TooltipPopup>
+            </Tooltip>
+          </div>
         )}
         <Tooltip>
           <TooltipTrigger
