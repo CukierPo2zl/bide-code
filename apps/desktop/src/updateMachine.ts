@@ -2,7 +2,7 @@ import type {
   DesktopRuntimeInfo,
   DesktopUpdateChannel,
   DesktopUpdateState,
-} from "@t3tools/contracts";
+} from "@bide/contracts";
 
 import { getCanRetryAfterDownloadFailure, nextStatusAfterDownloadFailure } from "./updateState";
 
