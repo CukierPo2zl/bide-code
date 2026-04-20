@@ -73,6 +73,7 @@ import {
 } from "../store";
 import { createProjectSelectorByRef, createThreadSelectorByRef } from "../storeSelectors";
 import { useUiStateStore } from "../uiStateStore";
+import { LraCanvas } from "./lra/LraCanvas";
 import {
   buildPlanImplementationThreadTitle,
   buildPlanImplementationPrompt,
@@ -629,6 +630,10 @@ export default function ChatView(props: ChatViewProps) {
   const selectedWorkflowTemplateId = useUiStateStore((store) =>
     store.workflowTemplateIdByThreadId[routeThreadKey] ?? null,
   );
+  const threadViewMode = useUiStateStore(
+    (store) => store.viewModeByThreadId[routeThreadKey] ?? "chat",
+  );
+  const setThreadViewMode = useUiStateStore((store) => store.setThreadViewMode);
   const workflowTemplates = useWorkflowStore((store) => store.templates);
   const selectedWorkflowTemplate = useMemo(
     () =>
@@ -3276,6 +3281,9 @@ export default function ChatView(props: ChatViewProps) {
           diffToggleShortcutLabel={diffPanelShortcutLabel}
           gitCwd={gitCwd}
           diffOpen={diffOpen}
+          viewMode={threadViewMode}
+          viewToggleAvailable={isServerThread}
+          onSetViewMode={(mode) => setThreadViewMode(activeThread.id, mode)}
           onRunProjectScript={runProjectScript}
           onAddProjectScript={saveProjectScript}
           onUpdateProjectScript={updateProjectScript}
@@ -3293,8 +3301,16 @@ export default function ChatView(props: ChatViewProps) {
       />
       {/* Main content area with optional plan sidebar */}
       <div className="flex min-h-0 min-w-0 flex-1">
+        {isServerThread && threadViewMode === "graph" ? (
+          <LraCanvas threadId={activeThread.id} startLabel={activeThread.title || "Start"} />
+        ) : null}
         {/* Chat column */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-1 flex-col",
+            isServerThread && threadViewMode === "graph" && "hidden",
+          )}
+        >
           {/* Messages Wrapper */}
           <div className="relative flex min-h-0 flex-1 flex-col">
             {/* Messages — LegendList handles virtualization and scrolling internally */}
@@ -3454,7 +3470,7 @@ export default function ChatView(props: ChatViewProps) {
         {/* end chat column */}
 
         {/* Plan sidebar */}
-        {planSidebarOpen ? (
+        {planSidebarOpen && !(isServerThread && threadViewMode === "graph") ? (
           <PlanSidebar
             activePlan={activePlan}
             activeProposedPlan={sidebarProposedPlan}
