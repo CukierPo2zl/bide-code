@@ -1,5 +1,8 @@
 import { Debouncer } from "@tanstack/react-pacer";
 import { create } from "zustand";
+import type { AgentDefinition } from "@t3tools/contracts";
+
+export type SidebarTab = "threads" | "workflows";
 
 export const PERSISTED_STATE_KEY = "t3code:ui-state:v1";
 const LEGACY_PERSISTED_STATE_KEYS = [
@@ -600,6 +603,12 @@ export function reorderProjects(
 }
 
 interface UiStateStore extends UiState {
+  sidebarTab: SidebarTab;
+  selectedAgent: AgentDefinition | null;
+  workflowTemplateIdByThreadId: Record<string, string | null>;
+  setSidebarTab: (tab: SidebarTab) => void;
+  setSelectedAgent: (agent: AgentDefinition | null) => void;
+  setThreadWorkflowTemplate: (threadId: string, templateId: string | null) => void;
   syncProjects: (projects: readonly SyncProjectInput[]) => void;
   syncThreads: (threads: readonly SyncThreadInput[]) => void;
   markThreadVisited: (threadId: string, visitedAt?: string) => void;
@@ -616,6 +625,18 @@ interface UiStateStore extends UiState {
 
 export const useUiStateStore = create<UiStateStore>((set) => ({
   ...readPersistedState(),
+  sidebarTab: "threads" as SidebarTab,
+  selectedAgent: null,
+  workflowTemplateIdByThreadId: {},
+  setSidebarTab: (sidebarTab) => set({ sidebarTab }),
+  setSelectedAgent: (selectedAgent) => set({ selectedAgent }),
+  setThreadWorkflowTemplate: (threadId, templateId) =>
+    set((state) => ({
+      workflowTemplateIdByThreadId: {
+        ...state.workflowTemplateIdByThreadId,
+        [threadId]: templateId,
+      },
+    })),
   syncProjects: (projects) => set((state) => syncProjects(state, projects)),
   syncThreads: (threads) => set((state) => syncThreads(state, threads)),
   markThreadVisited: (threadId, visitedAt) =>
