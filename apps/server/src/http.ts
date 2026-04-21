@@ -1,3 +1,6 @@
+import { writeFileSync } from "node:fs";
+import nodePath from "node:path";
+
 import Mime from "@effect/platform-node/Mime";
 import { Data, Effect, FileSystem, Option, Path } from "effect";
 import { cast } from "effect/Function";
@@ -16,7 +19,11 @@ import {
   normalizeAttachmentRelativePath,
   resolveAttachmentRelativePath,
 } from "./attachmentPaths.ts";
-import { resolveAttachmentPathById } from "./attachmentStore.ts";
+import {
+  createAttachmentId,
+  resolveAttachmentPathById,
+  SAFE_TEXT_FILE_EXTENSIONS,
+} from "./attachmentStore.ts";
 import { resolveStaticDir, ServerConfig } from "./config.ts";
 import { decodeOtlpTraceRecords } from "./observability/TraceRecord.ts";
 import { BrowserTraceCollector } from "./observability/Services/BrowserTraceCollector.ts";
@@ -309,4 +316,107 @@ export const staticAndDevRouteLayer = HttpRouter.add(
       contentType,
     });
   }),
+);
+
+const WORKFLOW_ARTIFACT_MAX_BYTES = 2 * 1024 * 1024;
+
+export const workflowArtifactUploadRouteLayer = HttpRouter.add(
+  "POST",
+  "/api/workflow/artifact-upload",
+  Effect.gen(function* () {
+    yield* requireAuthenticatedRequest;
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const config = yield* ServerConfig;
+    const path = yield* Path.Path;
+
+    const rawBody = yield* request.json.pipe(
+      Effect.catch(() => Effect.succeed(null)),
+    );
+    const body = rawBody as Record<string, unknown> | null;
+    if (!body || typeof body !== "object") {
+      return HttpServerResponse.text("Invalid JSON body", { status: 400 });
+    }
+
+    const fileName = typeof body.fileName === "string" ? body.fileName : "";
+    const content = typeof body.content === "string" ? body.content : "";
+    if (!fileName) {
+      return HttpServerResponse.text("Missing 'fileName'", { status: 400 });
+    }
+    if (!content) {
+      return HttpServerResponse.text("Missing 'content'", { status: 400 });
+    }
+
+    const ext = nodePath.extname(fileName).toLowerCase();
+    if (!SAFE_TEXT_FILE_EXTENSIONS.has(ext)) {
+      return HttpServerResponse.text(
+        `Unsupported file extension: ${ext}. Only text-based files are allowed.`,
+        { status: 400 },
+      );
+    }
+
+    const sizeBytes = new TextEncoder().encode(content).byteLength;
+    if (sizeBytes > WORKFLOW_ARTIFACT_MAX_BYTES) {
+      return HttpServerResponse.text(
+        `File too large (${(sizeBytes / 1024 / 1024).toFixed(1)} MB). Maximum is 2 MB.`,
+        { status: 400 },
+      );
+    }
+
+    const attachmentId = createAttachmentId("workflow-artifact");
+    if (!attachmentId) {
+      return HttpServerResponse.text("Failed to generate attachment ID", { status: 500 });
+    }
+
+    const relativePath = `${attachmentId}${ext}`;
+    const filePath = path.resolve(path.join(config.attachmentsDir, relativePath));
+
+    writeFileSync(filePath, content, "utf-8");
+
+    return HttpServerResponse.jsonUnsafe({
+      id: attachmentId,
+      fileName,
+      mimeType: "text/plain",
+      sizeBytes,
+    });
+  }).pipe(Effect.catchTag("AuthError", respondToAuthError)),
+);
+
+export const workflowArtifactContentRouteLayer = HttpRouter.add(
+  "GET",
+  "/api/workflow/artifact-content/*",
+  Effect.gen(function* () {
+    yield* requireAuthenticatedRequest;
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const config = yield* ServerConfig;
+    const fileSystem = yield* FileSystem.FileSystem;
+
+    const url = HttpServerRequest.toURL(request);
+    if (Option.isNone(url)) {
+      return HttpServerResponse.text("Bad Request", { status: 400 });
+    }
+
+    const pathSegments = url.value.pathname.split("/");
+    const attachmentId = pathSegments[pathSegments.length - 1];
+    if (!attachmentId) {
+      return HttpServerResponse.text("Missing attachment ID", { status: 400 });
+    }
+
+    const filePath = resolveAttachmentPathById({
+      attachmentsDir: config.attachmentsDir,
+      attachmentId,
+    });
+    if (!filePath) {
+      return HttpServerResponse.text("Not Found", { status: 404 });
+    }
+
+    const bytes = yield* fileSystem
+      .readFile(filePath)
+      .pipe(Effect.catch(() => Effect.succeed(null)));
+    if (!bytes) {
+      return HttpServerResponse.text("Failed to read file", { status: 500 });
+    }
+
+    const content = new TextDecoder("utf-8").decode(bytes);
+    return HttpServerResponse.jsonUnsafe({ content });
+  }).pipe(Effect.catchTag("AuthError", respondToAuthError)),
 );
