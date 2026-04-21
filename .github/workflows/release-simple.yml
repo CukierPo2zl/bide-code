@@ -1,0 +1,128 @@
+name: Release (simple)
+
+on:
+  push:
+    tags:
+      - "v*-simple"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. 0.0.21)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macOS arm64
+            os: macos-latest
+            platform: mac
+            target: dmg
+            arch: arm64
+          - label: macOS x64
+            os: macos-13
+            platform: mac
+            target: dmg
+            arch: x64
+          - label: Windows x64
+            os: windows-latest
+            platform: win
+            target: nsis
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Resolve version
+        id: v
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          raw="${INPUT_VERSION:-$REF_NAME}"
+          version="${raw#v}"
+          version="${version%-simple}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid version: $raw" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build desktop artifact
+        shell: bash
+        env:
+          BUILD_PLATFORM: ${{ matrix.platform }}
+          BUILD_TARGET: ${{ matrix.target }}
+          BUILD_ARCH: ${{ matrix.arch }}
+          BUILD_VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          bun run dist:desktop:artifact -- \
+            --platform "$BUILD_PLATFORM" \
+            --target "$BUILD_TARGET" \
+            --arch "$BUILD_ARCH" \
+            --build-version "$BUILD_VERSION" \
+            --verbose
+
+      - name: Collect artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist-out
+          shopt -s nullglob
+          for f in release/*.dmg release/*.exe; do
+            cp "$f" dist-out/
+          done
+          ls -la dist-out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist-out/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List downloaded files
+        run: ls -la dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: false
+          make_latest: true
+          files: |
+            dist/*.dmg
+            dist/*.exe
+          fail_on_unmatched_files: true
