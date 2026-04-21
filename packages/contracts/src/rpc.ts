@@ -76,6 +76,14 @@ import {
   ServerUpsertKeybindingResult,
 } from "./server.ts";
 import { ServerSettings, ServerSettingsError, ServerSettingsPatch } from "./settings.ts";
+import { ListAgentsInput, ListAgentsResult, ListAgentsError } from "./agents.ts";
+import {
+  WORKFLOW_WS_METHODS,
+  WsSubscribeWorkflowsRpc,
+  WsWorkflowDeleteRpc,
+  WsWorkflowListRpc,
+  WsWorkflowSaveRpc,
+} from "./workflow.ts";
 
 export const WS_METHODS = {
   // Project registry methods
@@ -90,6 +98,9 @@ export const WS_METHODS = {
 
   // Filesystem methods
   filesystemBrowse: "filesystem.browse",
+
+  // Agent methods
+  agentsListAgents: "agents.listAgents",
 
   // Git methods
   gitPull: "git.pull",
@@ -119,12 +130,18 @@ export const WS_METHODS = {
   serverGetSettings: "server.getSettings",
   serverUpdateSettings: "server.updateSettings",
 
+  // Workflow methods
+  workflowList: WORKFLOW_WS_METHODS.workflowList,
+  workflowSave: WORKFLOW_WS_METHODS.workflowSave,
+  workflowDelete: WORKFLOW_WS_METHODS.workflowDelete,
+
   // Streaming subscriptions
   subscribeGitStatus: "subscribeGitStatus",
   subscribeTerminalEvents: "subscribeTerminalEvents",
   subscribeServerConfig: "subscribeServerConfig",
   subscribeServerLifecycle: "subscribeServerLifecycle",
   subscribeAuthAccess: "subscribeAuthAccess",
+  subscribeWorkflows: WORKFLOW_WS_METHODS.subscribeWorkflows,
 } as const;
 
 export const WsServerUpsertKeybindingRpc = Rpc.make(WS_METHODS.serverUpsertKeybinding, {
@@ -177,6 +194,12 @@ export const WsFilesystemBrowseRpc = Rpc.make(WS_METHODS.filesystemBrowse, {
   payload: FilesystemBrowseInput,
   success: FilesystemBrowseResult,
   error: FilesystemBrowseError,
+});
+
+export const WsAgentsListAgentsRpc = Rpc.make(WS_METHODS.agentsListAgents, {
+  payload: ListAgentsInput,
+  success: ListAgentsResult,
+  error: ListAgentsError,
 });
 
 export const WsSubscribeGitStatusRpc = Rpc.make(WS_METHODS.subscribeGitStatus, {
@@ -365,6 +388,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsProjectsWriteFileRpc,
   WsShellOpenInEditorRpc,
   WsFilesystemBrowseRpc,
+  WsAgentsListAgentsRpc,
   WsSubscribeGitStatusRpc,
   WsGitPullRpc,
   WsGitRefreshStatusRpc,
@@ -393,4 +417,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsOrchestrationReplayEventsRpc,
   WsOrchestrationSubscribeShellRpc,
   WsOrchestrationSubscribeThreadRpc,
+  WsWorkflowListRpc,
+  WsWorkflowSaveRpc,
+  WsWorkflowDeleteRpc,
+  WsSubscribeWorkflowsRpc,
 );

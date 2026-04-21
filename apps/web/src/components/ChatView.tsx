@@ -134,6 +134,10 @@ import {
 } from "../lib/terminalContext";
 import { selectThreadTerminalState, useTerminalStateStore } from "../terminalStateStore";
 import { ChatComposer, type ChatComposerHandle } from "./chat/ChatComposer";
+import { buildWorkflowOrchestrationPrompt } from "~/lib/workflowPrompt";
+import { fetchArtifactContent } from "~/hooks/useArtifactFileUpload";
+import type { ArtifactNodeData, WorkflowTemplate } from "~/types/workflow";
+import { useWorkflowStore } from "~/workflowStore";
 import { ExpandedImageDialog } from "./chat/ExpandedImageDialog";
 import { PullRequestThreadDialog } from "./PullRequestThreadDialog";
 import { MessagesTimeline } from "./chat/MessagesTimeline";
@@ -182,6 +186,23 @@ const EMPTY_ACTIVITIES: OrchestrationThreadActivity[] = [];
 const EMPTY_PROPOSED_PLANS: Thread["proposedPlans"] = [];
 const EMPTY_PROVIDERS: ServerProvider[] = [];
 const EMPTY_PENDING_USER_INPUT_ANSWERS: Record<string, PendingUserInputDraftAnswer> = {};
+
+async function resolveArtifactContents(template: WorkflowTemplate): Promise<Map<string, string>> {
+  const contents = new Map<string, string>();
+  const artifactNodes = template.nodes.filter((n) => n.type === "artifact");
+  await Promise.all(
+    artifactNodes.map(async (node) => {
+      const data = node.data as ArtifactNodeData;
+      if (data.fileAttachment) {
+        const text = await fetchArtifactContent(data.fileAttachment.id);
+        if (text) contents.set(node.id, text);
+      } else if (data.content) {
+        contents.set(node.id, data.content);
+      }
+    }),
+  );
+  return contents;
+}
 
 type ThreadPlanCatalogEntry = Pick<Thread, "id" | "proposedPlans">;
 
@@ -609,6 +630,17 @@ export default function ChatView(props: ChatViewProps) {
   const markThreadVisited = useUiStateStore((store) => store.markThreadVisited);
   const activeThreadLastVisitedAt = useUiStateStore((store) =>
     routeKind === "server" ? store.threadLastVisitedAtById[routeThreadKey] : undefined,
+  );
+  const selectedWorkflowTemplateId = useUiStateStore(
+    (store) => store.workflowTemplateIdByThreadId[routeThreadKey] ?? null,
+  );
+  const workflowTemplates = useWorkflowStore((store) => store.templates);
+  const selectedWorkflowTemplate = useMemo(
+    () =>
+      selectedWorkflowTemplateId
+        ? workflowTemplates.find((t) => t.id === selectedWorkflowTemplateId) ?? null
+        : null,
+    [selectedWorkflowTemplateId, workflowTemplates],
   );
   const settings = useSettings();
   const setStickyComposerModelSelection = useComposerDraftStore(
@@ -2462,13 +2494,20 @@ export default function ChatView(props: ChatViewProps) {
     );
     const messageIdForSend = newMessageId();
     const messageCreatedAt = new Date().toISOString();
-    const outgoingMessageText = formatOutgoingPrompt({
+    const formattedOutgoingText = formatOutgoingPrompt({
       provider: ctxSelectedProvider,
       model: ctxSelectedModel,
       models: ctxSelectedProviderModels,
       effort: ctxSelectedPromptEffort,
       text: messageTextForSend || IMAGE_ONLY_BOOTSTRAP_PROMPT,
     });
+    const outgoingMessageText = selectedWorkflowTemplate
+      ? buildWorkflowOrchestrationPrompt(
+          selectedWorkflowTemplate,
+          formattedOutgoingText,
+          await resolveArtifactContents(selectedWorkflowTemplate),
+        )
+      : formattedOutgoingText;
     const turnAttachmentsPromise = Promise.all(
       composerImagesSnapshot.map(async (image) => ({
         type: "image" as const,
@@ -2871,13 +2910,20 @@ export default function ChatView(props: ChatViewProps) {
       const threadIdForSend = activeThread.id;
       const messageIdForSend = newMessageId();
       const messageCreatedAt = new Date().toISOString();
-      const outgoingMessageText = formatOutgoingPrompt({
+      const formattedOutgoingText = formatOutgoingPrompt({
         provider: ctxSelectedProvider,
         model: ctxSelectedModel,
         models: ctxSelectedProviderModels,
         effort: ctxSelectedPromptEffort,
         text: trimmed,
       });
+      const outgoingMessageText = selectedWorkflowTemplate
+        ? buildWorkflowOrchestrationPrompt(
+            selectedWorkflowTemplate,
+            formattedOutgoingText,
+            await resolveArtifactContents(selectedWorkflowTemplate),
+          )
+        : formattedOutgoingText;
 
       sendInFlightRef.current = true;
       beginLocalDispatch({ preparingWorktree: false });

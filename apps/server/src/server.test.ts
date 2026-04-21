@@ -105,6 +105,14 @@ import { WorkspaceFileSystemLive } from "./workspace/Layers/WorkspaceFileSystem.
 import { WorkspacePathsLive } from "./workspace/Layers/WorkspacePaths.ts";
 import { ServerSecretStoreLive } from "./auth/Layers/ServerSecretStore.ts";
 import { ServerAuthLive } from "./auth/Layers/ServerAuth.ts";
+import {
+  AgentDefinitions,
+  type AgentDefinitionsShape,
+} from "./agents/Services/AgentDefinitions.ts";
+import {
+  WorkflowTemplateService,
+  type WorkflowTemplateServiceShape,
+} from "./workflow/WorkflowTemplateService.ts";
 
 const defaultProjectId = ProjectId.make("project-default");
 const defaultThreadId = ThreadId.make("thread-default");
@@ -335,6 +343,8 @@ const buildAppUnderTest = (options?: {
     serverRuntimeStartup?: Partial<ServerRuntimeStartupShape>;
     serverEnvironment?: Partial<ServerEnvironmentShape>;
     repositoryIdentityResolver?: Partial<RepositoryIdentityResolverShape>;
+    agentDefinitions?: Partial<AgentDefinitionsShape>;
+    workflowTemplateService?: Partial<WorkflowTemplateServiceShape>;
   };
 }) =>
   Effect.gen(function* () {
@@ -537,6 +547,21 @@ const buildAppUnderTest = (options?: {
         Layer.mock(RepositoryIdentityResolver)({
           resolve: () => Effect.succeed(null),
           ...options?.layers?.repositoryIdentityResolver,
+        }),
+      ),
+      Layer.provide(
+        Layer.mock(AgentDefinitions)({
+          listAgents: () => Effect.succeed({ agents: [] }),
+          ...options?.layers?.agentDefinitions,
+        }),
+      ),
+      Layer.provide(
+        Layer.mock(WorkflowTemplateService)({
+          list: () => Effect.succeed([]),
+          save: (template) => Effect.succeed(template),
+          delete: (id) => Effect.succeed({ id }),
+          changes: Stream.empty,
+          ...options?.layers?.workflowTemplateService,
         }),
       ),
       Layer.provideMerge(authTestLayer),

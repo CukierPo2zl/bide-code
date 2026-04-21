@@ -37,6 +37,7 @@ import {
 } from "../rpc/serverState";
 import { useStore } from "../store";
 import { useUiStateStore } from "../uiStateStore";
+import { startWorkflowSync } from "../workflowStore";
 import { syncBrowserChromeTheme } from "../hooks/useTheme";
 import {
   ensureEnvironmentConnectionBootstrapped,
@@ -183,6 +184,9 @@ function errorDetails(error: unknown): string {
 
 function ServerStateBootstrap() {
   useEffect(() => startServerStateSync(getPrimaryEnvironmentConnection().client.server), []);
+  useEffect(() => {
+    startWorkflowSync();
+  }, []);
 
   return null;
 }

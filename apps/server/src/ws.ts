@@ -22,6 +22,10 @@ import {
   type TerminalEvent,
   WS_METHODS,
   WsRpcGroup,
+  ListAgentsError,
+  WORKFLOW_WS_METHODS,
+  type WorkflowSubscribeEvent,
+  WorkflowServiceError,
 } from "@t3tools/contracts";
 import { clamp } from "effect/Number";
 import { HttpRouter, HttpServerRequest } from "effect/unstable/http";
@@ -63,6 +67,8 @@ import {
   type SessionCredentialChange,
 } from "./auth/Services/SessionCredentialService.ts";
 import { respondToAuthError } from "./auth/http.ts";
+import { AgentDefinitions } from "./agents/Services/AgentDefinitions.ts";
+import { WorkflowTemplateService } from "./workflow/WorkflowTemplateService.ts";
 
 function isThreadDetailEvent(event: OrchestrationEvent): event is Extract<
   OrchestrationEvent,
@@ -153,6 +159,8 @@ const makeWsRpcLayer = (currentSessionId: AuthSessionId) =>
       const serverAuth = yield* ServerAuth;
       const bootstrapCredentials = yield* BootstrapCredentialService;
       const sessions = yield* SessionCredentialService;
+      const agentDefinitions = yield* AgentDefinitions;
+      const workflowTemplateService = yield* WorkflowTemplateService;
       const serverCommandId = (tag: string) =>
         CommandId.make(`server:${tag}:${crypto.randomUUID()}`);
 
@@ -1053,6 +1061,65 @@ const makeWsRpcLayer = (currentSessionId: AuthSessionId) =>
               );
             }),
             { "rpc.aggregate": "auth" },
+          ),
+        [WS_METHODS.agentsListAgents]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.agentsListAgents,
+            agentDefinitions.listAgents(input).pipe(
+              Effect.mapError(
+                (cause) =>
+                  new ListAgentsError({
+                    message: cause.detail,
+                    cause,
+                  }),
+              ),
+            ),
+            { "rpc.aggregate": "agents" },
+          ),
+        [WORKFLOW_WS_METHODS.workflowList]: (_input) =>
+          observeRpcEffect(
+            WORKFLOW_WS_METHODS.workflowList,
+            workflowTemplateService.list().pipe(
+              Effect.map((templates) => templates as ReadonlyArray<(typeof templates)[number]>),
+            ),
+            { "rpc.aggregate": "workflow" },
+          ),
+        [WORKFLOW_WS_METHODS.workflowSave]: (input) =>
+          observeRpcEffect(
+            WORKFLOW_WS_METHODS.workflowSave,
+            workflowTemplateService.save(input),
+            { "rpc.aggregate": "workflow" },
+          ),
+        [WORKFLOW_WS_METHODS.workflowDelete]: (input) =>
+          observeRpcEffect(
+            WORKFLOW_WS_METHODS.workflowDelete,
+            workflowTemplateService.delete(input.id),
+            { "rpc.aggregate": "workflow" },
+          ),
+        [WORKFLOW_WS_METHODS.subscribeWorkflows]: (_input) =>
+          observeRpcStreamEffect(
+            WORKFLOW_WS_METHODS.subscribeWorkflows,
+            Effect.gen(function* () {
+              const initial = yield* workflowTemplateService.list().pipe(
+                Effect.mapError(
+                  (cause) =>
+                    new WorkflowServiceError({
+                      message: "Failed to load workflow snapshot",
+                      cause,
+                    }),
+                ),
+              );
+              const liveStream: Stream.Stream<WorkflowSubscribeEvent> =
+                workflowTemplateService.changes;
+              return Stream.concat(
+                Stream.make({
+                  kind: "snapshot" as const,
+                  templates: initial,
+                } satisfies WorkflowSubscribeEvent),
+                liveStream,
+              );
+            }),
+            { "rpc.aggregate": "workflow" },
           ),
       });
     }),

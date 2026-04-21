@@ -8,6 +8,7 @@ import {
   ORCHESTRATION_WS_METHODS,
   type ServerSettingsPatch,
   WS_METHODS,
+  WORKFLOW_WS_METHODS,
 } from "@t3tools/contracts";
 import { applyGitStatusStreamEvent } from "@t3tools/shared/git";
 import { Effect, Stream } from "effect";
@@ -118,6 +119,15 @@ export interface WsRpcClient {
     readonly getFullThreadDiff: RpcUnaryMethod<typeof ORCHESTRATION_WS_METHODS.getFullThreadDiff>;
     readonly subscribeShell: RpcStreamMethod<typeof ORCHESTRATION_WS_METHODS.subscribeShell>;
     readonly subscribeThread: RpcInputStreamMethod<typeof ORCHESTRATION_WS_METHODS.subscribeThread>;
+  };
+  readonly agents: {
+    readonly listAgents: RpcUnaryMethod<typeof WS_METHODS.agentsListAgents>;
+  };
+  readonly workflow: {
+    readonly list: RpcUnaryNoArgMethod<typeof WORKFLOW_WS_METHODS.workflowList>;
+    readonly save: RpcUnaryMethod<typeof WORKFLOW_WS_METHODS.workflowSave>;
+    readonly delete: RpcUnaryMethod<typeof WORKFLOW_WS_METHODS.workflowDelete>;
+    readonly subscribe: RpcStreamMethod<typeof WORKFLOW_WS_METHODS.subscribeWorkflows>;
   };
 }
 
@@ -248,6 +258,23 @@ export function createWsRpcClient(transport: WsTransport): WsRpcClient {
       subscribeThread: (input, listener, options) =>
         transport.subscribe(
           (client) => client[ORCHESTRATION_WS_METHODS.subscribeThread](input),
+          listener,
+          options,
+        ),
+    },
+    agents: {
+      listAgents: (input) =>
+        transport.request((client) => client[WS_METHODS.agentsListAgents](input)),
+    },
+    workflow: {
+      list: () => transport.request((client) => client[WORKFLOW_WS_METHODS.workflowList]({})),
+      save: (input) =>
+        transport.request((client) => client[WORKFLOW_WS_METHODS.workflowSave](input)),
+      delete: (input) =>
+        transport.request((client) => client[WORKFLOW_WS_METHODS.workflowDelete](input)),
+      subscribe: (listener, options) =>
+        transport.subscribe(
+          (client) => client[WORKFLOW_WS_METHODS.subscribeWorkflows]({}),
           listener,
           options,
         ),
