@@ -18,6 +18,7 @@ import {
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
 } from "@t3tools/contracts";
 import { createModelSelection, normalizeModelSlug } from "@t3tools/shared/model";
+import { scopedThreadKey } from "@t3tools/client-runtime";
 import {
   forwardRef,
   memo,
@@ -76,6 +77,7 @@ import {
   renderProviderTraitsMenuContent,
   renderProviderTraitsPicker,
 } from "./composerProviderRegistry";
+import { ComposerWorkflowPicker } from "./ComposerWorkflowPicker";
 import { ContextWindowMeter } from "./ContextWindowMeter";
 import { buildExpandedImagePreview, type ExpandedImagePreview } from "./ExpandedImagePreview";
 import { basenameOfPath } from "../../vscode-icons";
@@ -1900,6 +1902,9 @@ export const ChatComposer = memo(
                     }}
                     onProviderModelChange={onProviderModelSelect}
                   />
+
+                  <Separator orientation="vertical" className="mx-0.5 hidden h-4 sm:block" />
+                  <ComposerWorkflowPicker threadKey={scopedThreadKey(routeThreadRef)} />
 
                   {isComposerFooterCompact ? (
                     <CompactComposerControlsMenu
