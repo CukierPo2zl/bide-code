@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "v*.*.*"
-      - "!v*-nightly.*"
   workflow_dispatch:
     inputs:
       version:
@@ -110,13 +109,29 @@ jobs:
       - name: List downloaded files
         run: ls -la dist
 
+      - name: Classify release
+        id: classify
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          # Semver prerelease tags (v1.2.3-<suffix>) are marked prerelease.
+          # Plain vX.Y.Z is a stable release.
+          if [[ "$REF_NAME" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "make_latest=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "make_latest=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           generate_release_notes: true
-          prerelease: false
-          make_latest: true
+          prerelease: ${{ steps.classify.outputs.prerelease }}
+          make_latest: ${{ steps.classify.outputs.make_latest }}
           files: |
             dist/*.dmg
             dist/*.exe
