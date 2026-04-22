@@ -1,6 +1,7 @@
 import {
   ArchiveIcon,
   ArrowUpDownIcon,
+  BlocksIcon,
   ChevronRightIcon,
   CloudIcon,
   GitPullRequestIcon,
@@ -99,6 +100,7 @@ import {
 import { toastManager } from "./ui/toast";
 import { formatRelativeTimeLabel } from "../timestampFormat";
 import { SettingsSidebarNav } from "./settings/SettingsSidebarNav";
+import { CustomizeSidebarNav } from "./customize/CustomizeSidebarNav";
 import { Kbd } from "./ui/kbd";
 import {
   getArm64IntelBuildWarningDescription,
@@ -2677,6 +2679,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const pathname = useLocation({ select: (loc) => loc.pathname });
   const isOnSettings = pathname.startsWith("/settings");
+  const isOnCustomize = pathname.startsWith("/customize");
   const sidebarThreadSortOrder = useSettings((s) => s.sidebarThreadSortOrder);
   const sidebarProjectSortOrder = useSettings((s) => s.sidebarProjectSortOrder);
   const sidebarProjectGroupingMode = useSettings((s) => s.sidebarProjectGroupingMode);
@@ -3290,9 +3293,25 @@ export default function Sidebar() {
 
       {isOnSettings ? (
         <SettingsSidebarNav pathname={pathname} />
+      ) : isOnCustomize ? (
+        <CustomizeSidebarNav pathname={pathname} />
       ) : (
         <>
           <SidebarTabBar />
+          <SidebarGroup className="px-2 pt-2 pb-0">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  size="sm"
+                  className="gap-2 px-2 py-1.5 text-muted-foreground/70 hover:bg-accent hover:text-foreground"
+                  onClick={() => void navigate({ to: "/customize/marketplaces" })}
+                >
+                  <BlocksIcon className="size-3.5" />
+                  <span className="flex-1 truncate text-left text-xs">Customize</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
 
           {sidebarTab === "threads" && (
             <SidebarProjectsContent

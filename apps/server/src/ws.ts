@@ -68,6 +68,7 @@ import {
 } from "./auth/Services/SessionCredentialService.ts";
 import { respondToAuthError } from "./auth/http.ts";
 import { AgentDefinitions } from "./agents/Services/AgentDefinitions.ts";
+import { Plugins } from "./plugins/Services/Plugins.ts";
 import { WorkflowTemplateService } from "./workflow/WorkflowTemplateService.ts";
 
 function isThreadDetailEvent(event: OrchestrationEvent): event is Extract<
@@ -160,6 +161,7 @@ const makeWsRpcLayer = (currentSessionId: AuthSessionId) =>
       const bootstrapCredentials = yield* BootstrapCredentialService;
       const sessions = yield* SessionCredentialService;
       const agentDefinitions = yield* AgentDefinitions;
+      const plugins = yield* Plugins;
       const workflowTemplateService = yield* WorkflowTemplateService;
       const serverCommandId = (tag: string) =>
         CommandId.make(`server:${tag}:${crypto.randomUUID()}`);
@@ -1075,6 +1077,60 @@ const makeWsRpcLayer = (currentSessionId: AuthSessionId) =>
               ),
             ),
             { "rpc.aggregate": "agents" },
+          ),
+        [WS_METHODS.agentsCreateGlobalAgent]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.agentsCreateGlobalAgent,
+            agentDefinitions.createGlobalAgent(input),
+            { "rpc.aggregate": "agents" },
+          ),
+        [WS_METHODS.pluginsListMarketplaces]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.pluginsListMarketplaces,
+            plugins.listMarketplaces(input),
+            { "rpc.aggregate": "plugins" },
+          ),
+        [WS_METHODS.pluginsAddMarketplace]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.pluginsAddMarketplace,
+            plugins.addMarketplace(input),
+            { "rpc.aggregate": "plugins" },
+          ),
+        [WS_METHODS.pluginsRemoveMarketplace]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.pluginsRemoveMarketplace,
+            plugins.removeMarketplace(input),
+            { "rpc.aggregate": "plugins" },
+          ),
+        [WS_METHODS.pluginsListInstalled]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.pluginsListInstalled,
+            plugins.listInstalled(input),
+            { "rpc.aggregate": "plugins" },
+          ),
+        [WS_METHODS.pluginsListMarketplacePlugins]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.pluginsListMarketplacePlugins,
+            plugins.listMarketplacePlugins(input),
+            { "rpc.aggregate": "plugins" },
+          ),
+        [WS_METHODS.pluginsGetPluginDetails]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.pluginsGetPluginDetails,
+            plugins.getPluginDetails(input),
+            { "rpc.aggregate": "plugins" },
+          ),
+        [WS_METHODS.pluginsInstallPlugin]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.pluginsInstallPlugin,
+            plugins.installPlugin(input),
+            { "rpc.aggregate": "plugins" },
+          ),
+        [WS_METHODS.pluginsUninstallPlugin]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.pluginsUninstallPlugin,
+            plugins.uninstallPlugin(input),
+            { "rpc.aggregate": "plugins" },
           ),
         [WORKFLOW_WS_METHODS.workflowList]: (_input) =>
           observeRpcEffect(

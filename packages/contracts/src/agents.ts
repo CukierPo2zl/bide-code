@@ -40,3 +40,30 @@ export class ListAgentsError extends Schema.TaggedErrorClass<ListAgentsError>()(
     cause: Schema.optional(Schema.Defect),
   },
 ) {}
+
+export const CreateGlobalAgentInput = Schema.Struct({
+  name: TrimmedNonEmptyString,
+  description: Schema.optional(Schema.String),
+  model: Schema.optional(Schema.String),
+  tools: Schema.optional(Schema.Array(Schema.String)),
+  body: TrimmedNonEmptyString,
+});
+export type CreateGlobalAgentInput = typeof CreateGlobalAgentInput.Type;
+
+export const CreateGlobalAgentResult = Schema.Struct({
+  agent: AgentDefinition,
+});
+export type CreateGlobalAgentResult = typeof CreateGlobalAgentResult.Type;
+
+export class CreateGlobalAgentError extends Schema.TaggedErrorClass<CreateGlobalAgentError>()(
+  "CreateGlobalAgentError",
+  {
+    kind: Schema.Union([
+      Schema.Literal("validation"),
+      Schema.Literal("collision"),
+      Schema.Literal("io"),
+    ]),
+    message: TrimmedNonEmptyString,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}

@@ -4,7 +4,12 @@ import nodePath from "node:path";
 
 import { Effect, Layer } from "effect";
 
-import type { AgentDefinition, AgentScope } from "@t3tools/contracts";
+import {
+  CreateGlobalAgentError,
+  type AgentDefinition,
+  type AgentScope,
+  type CreateGlobalAgentInput,
+} from "@t3tools/contracts";
 
 import {
   AgentDefinitions,
@@ -138,6 +143,86 @@ async function readPluginAgents(): Promise<AgentDefinition[]> {
   return agents;
 }
 
+const AGENT_NAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+function escapeFrontmatterValue(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/[:\n#"'\\]/.test(trimmed) || /^[\s{\[]/.test(trimmed)) {
+    return `"${trimmed.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  }
+  return trimmed;
+}
+
+function buildAgentFile(input: CreateGlobalAgentInput): string {
+  const lines: string[] = ["---", `name: ${input.name}`];
+  if (input.description && input.description.trim()) {
+    lines.push(`description: ${escapeFrontmatterValue(input.description)}`);
+  }
+  if (input.model && input.model.trim()) {
+    lines.push(`model: ${escapeFrontmatterValue(input.model)}`);
+  }
+  if (input.tools && input.tools.length > 0) {
+    const toolsList = input.tools.map((t) => t.trim()).filter(Boolean);
+    if (toolsList.length > 0) {
+      lines.push(`tools: [${toolsList.join(", ")}]`);
+    }
+  }
+  lines.push("---", "", input.body.trim(), "");
+  return lines.join("\n");
+}
+
+async function createGlobalAgentFile(
+  input: CreateGlobalAgentInput,
+): Promise<AgentDefinition> {
+  if (!AGENT_NAME_PATTERN.test(input.name)) {
+    throw new CreateGlobalAgentError({
+      kind: "validation",
+      message:
+        "Agent name must be kebab-case: lowercase letters, digits, and hyphens only (e.g., code-reviewer).",
+    });
+  }
+
+  const globalAgentsDir = nodePath.join(OS.homedir(), ".claude", "agents");
+  const fileName = `${input.name}.md`;
+  const filePath = nodePath.join(globalAgentsDir, fileName);
+
+  const resolved = nodePath.resolve(filePath);
+  if (!resolved.startsWith(nodePath.resolve(globalAgentsDir) + nodePath.sep)) {
+    throw new CreateGlobalAgentError({
+      kind: "validation",
+      message: "Resolved agent path escapes the global agents directory.",
+    });
+  }
+
+  await fsPromises.mkdir(globalAgentsDir, { recursive: true });
+
+  try {
+    await fsPromises.access(filePath);
+    throw new CreateGlobalAgentError({
+      kind: "collision",
+      message: `An agent named "${input.name}" already exists at ${filePath}.`,
+    });
+  } catch (err) {
+    if (err instanceof CreateGlobalAgentError) throw err;
+    // ENOENT — file doesn't exist, proceed
+  }
+
+  const content = buildAgentFile(input);
+  await fsPromises.writeFile(filePath, content, { encoding: "utf-8", flag: "wx" });
+
+  return {
+    name: input.name,
+    fileName,
+    scope: "global",
+    ...(input.description?.trim() && { description: input.description.trim() }),
+    ...(input.model?.trim() && { model: input.model.trim() }),
+    ...(input.tools && input.tools.length > 0 && { tools: [...input.tools] }),
+    body: input.body.trim(),
+    path: filePath,
+  };
+}
+
 export const makeAgentDefinitions = Effect.gen(function* () {
   const listAgents: AgentDefinitionsShape["listAgents"] = Effect.fn(
     "AgentDefinitions.listAgents",
@@ -182,7 +267,24 @@ export const makeAgentDefinitions = Effect.gen(function* () {
     };
   });
 
-  return { listAgents } satisfies AgentDefinitionsShape;
+  const createGlobalAgent: AgentDefinitionsShape["createGlobalAgent"] = Effect.fn(
+    "AgentDefinitions.createGlobalAgent",
+  )(function* (input) {
+    const agent = yield* Effect.tryPromise({
+      try: () => createGlobalAgentFile(input),
+      catch: (cause) => {
+        if (cause instanceof CreateGlobalAgentError) return cause;
+        return new CreateGlobalAgentError({
+          kind: "io",
+          message: `Failed to create agent: ${cause instanceof Error ? cause.message : String(cause)}`,
+          cause,
+        });
+      },
+    });
+    return { agent };
+  });
+
+  return { listAgents, createGlobalAgent } satisfies AgentDefinitionsShape;
 });
 
 export const AgentDefinitionsLive = Layer.effect(AgentDefinitions, makeAgentDefinitions);

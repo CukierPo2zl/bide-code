@@ -11,13 +11,21 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PairRouteImport } from './routes/pair'
+import { Route as CustomizeRouteImport } from './routes/customize'
 import { Route as ChatRouteImport } from './routes/_chat'
 import { Route as ChatIndexRouteImport } from './routes/_chat.index'
 import { Route as SettingsGeneralRouteImport } from './routes/settings.general'
 import { Route as SettingsConnectionsRouteImport } from './routes/settings.connections'
 import { Route as SettingsArchivedRouteImport } from './routes/settings.archived'
+import { Route as CustomizeMarketplacesRouteImport } from './routes/customize.marketplaces'
+import { Route as CustomizeInstalledRouteImport } from './routes/customize.installed'
+import { Route as CustomizeAgentsRouteImport } from './routes/customize.agents'
+import { Route as CustomizeMarketplacesIndexRouteImport } from './routes/customize.marketplaces.index'
+import { Route as CustomizeMarketplacesNameRouteImport } from './routes/customize.marketplaces.$name'
 import { Route as ChatDraftDraftIdRouteImport } from './routes/_chat.draft.$draftId'
 import { Route as ChatEnvironmentIdThreadIdRouteImport } from './routes/_chat.$environmentId.$threadId'
+import { Route as CustomizeMarketplacesNameIndexRouteImport } from './routes/customize.marketplaces.$name.index'
+import { Route as CustomizeMarketplacesNamePluginRouteImport } from './routes/customize.marketplaces.$name.$plugin'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -27,6 +35,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const PairRoute = PairRouteImport.update({
   id: '/pair',
   path: '/pair',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomizeRoute = CustomizeRouteImport.update({
+  id: '/customize',
+  path: '/customize',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -53,6 +66,33 @@ const SettingsArchivedRoute = SettingsArchivedRouteImport.update({
   path: '/archived',
   getParentRoute: () => SettingsRoute,
 } as any)
+const CustomizeMarketplacesRoute = CustomizeMarketplacesRouteImport.update({
+  id: '/marketplaces',
+  path: '/marketplaces',
+  getParentRoute: () => CustomizeRoute,
+} as any)
+const CustomizeInstalledRoute = CustomizeInstalledRouteImport.update({
+  id: '/installed',
+  path: '/installed',
+  getParentRoute: () => CustomizeRoute,
+} as any)
+const CustomizeAgentsRoute = CustomizeAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => CustomizeRoute,
+} as any)
+const CustomizeMarketplacesIndexRoute =
+  CustomizeMarketplacesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => CustomizeMarketplacesRoute,
+  } as any)
+const CustomizeMarketplacesNameRoute =
+  CustomizeMarketplacesNameRouteImport.update({
+    id: '/$name',
+    path: '/$name',
+    getParentRoute: () => CustomizeMarketplacesRoute,
+  } as any)
 const ChatDraftDraftIdRoute = ChatDraftDraftIdRouteImport.update({
   id: '/draft/$draftId',
   path: '/draft/$draftId',
@@ -64,75 +104,132 @@ const ChatEnvironmentIdThreadIdRoute =
     path: '/$environmentId/$threadId',
     getParentRoute: () => ChatRoute,
   } as any)
+const CustomizeMarketplacesNameIndexRoute =
+  CustomizeMarketplacesNameIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => CustomizeMarketplacesNameRoute,
+  } as any)
+const CustomizeMarketplacesNamePluginRoute =
+  CustomizeMarketplacesNamePluginRouteImport.update({
+    id: '/$plugin',
+    path: '/$plugin',
+    getParentRoute: () => CustomizeMarketplacesNameRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ChatIndexRoute
+  '/customize': typeof CustomizeRouteWithChildren
   '/pair': typeof PairRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/customize/agents': typeof CustomizeAgentsRoute
+  '/customize/installed': typeof CustomizeInstalledRoute
+  '/customize/marketplaces': typeof CustomizeMarketplacesRouteWithChildren
   '/settings/archived': typeof SettingsArchivedRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/$environmentId/$threadId': typeof ChatEnvironmentIdThreadIdRoute
   '/draft/$draftId': typeof ChatDraftDraftIdRoute
+  '/customize/marketplaces/$name': typeof CustomizeMarketplacesNameRouteWithChildren
+  '/customize/marketplaces/': typeof CustomizeMarketplacesIndexRoute
+  '/customize/marketplaces/$name/$plugin': typeof CustomizeMarketplacesNamePluginRoute
+  '/customize/marketplaces/$name/': typeof CustomizeMarketplacesNameIndexRoute
 }
 export interface FileRoutesByTo {
+  '/customize': typeof CustomizeRouteWithChildren
   '/pair': typeof PairRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/customize/agents': typeof CustomizeAgentsRoute
+  '/customize/installed': typeof CustomizeInstalledRoute
   '/settings/archived': typeof SettingsArchivedRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/': typeof ChatIndexRoute
   '/$environmentId/$threadId': typeof ChatEnvironmentIdThreadIdRoute
   '/draft/$draftId': typeof ChatDraftDraftIdRoute
+  '/customize/marketplaces': typeof CustomizeMarketplacesIndexRoute
+  '/customize/marketplaces/$name/$plugin': typeof CustomizeMarketplacesNamePluginRoute
+  '/customize/marketplaces/$name': typeof CustomizeMarketplacesNameIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_chat': typeof ChatRouteWithChildren
+  '/customize': typeof CustomizeRouteWithChildren
   '/pair': typeof PairRoute
   '/settings': typeof SettingsRouteWithChildren
+  '/customize/agents': typeof CustomizeAgentsRoute
+  '/customize/installed': typeof CustomizeInstalledRoute
+  '/customize/marketplaces': typeof CustomizeMarketplacesRouteWithChildren
   '/settings/archived': typeof SettingsArchivedRoute
   '/settings/connections': typeof SettingsConnectionsRoute
   '/settings/general': typeof SettingsGeneralRoute
   '/_chat/': typeof ChatIndexRoute
   '/_chat/$environmentId/$threadId': typeof ChatEnvironmentIdThreadIdRoute
   '/_chat/draft/$draftId': typeof ChatDraftDraftIdRoute
+  '/customize/marketplaces/$name': typeof CustomizeMarketplacesNameRouteWithChildren
+  '/customize/marketplaces/': typeof CustomizeMarketplacesIndexRoute
+  '/customize/marketplaces/$name/$plugin': typeof CustomizeMarketplacesNamePluginRoute
+  '/customize/marketplaces/$name/': typeof CustomizeMarketplacesNameIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/customize'
     | '/pair'
     | '/settings'
+    | '/customize/agents'
+    | '/customize/installed'
+    | '/customize/marketplaces'
     | '/settings/archived'
     | '/settings/connections'
     | '/settings/general'
     | '/$environmentId/$threadId'
     | '/draft/$draftId'
+    | '/customize/marketplaces/$name'
+    | '/customize/marketplaces/'
+    | '/customize/marketplaces/$name/$plugin'
+    | '/customize/marketplaces/$name/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/customize'
     | '/pair'
     | '/settings'
+    | '/customize/agents'
+    | '/customize/installed'
     | '/settings/archived'
     | '/settings/connections'
     | '/settings/general'
     | '/'
     | '/$environmentId/$threadId'
     | '/draft/$draftId'
+    | '/customize/marketplaces'
+    | '/customize/marketplaces/$name/$plugin'
+    | '/customize/marketplaces/$name'
   id:
     | '__root__'
     | '/_chat'
+    | '/customize'
     | '/pair'
     | '/settings'
+    | '/customize/agents'
+    | '/customize/installed'
+    | '/customize/marketplaces'
     | '/settings/archived'
     | '/settings/connections'
     | '/settings/general'
     | '/_chat/'
     | '/_chat/$environmentId/$threadId'
     | '/_chat/draft/$draftId'
+    | '/customize/marketplaces/$name'
+    | '/customize/marketplaces/'
+    | '/customize/marketplaces/$name/$plugin'
+    | '/customize/marketplaces/$name/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   ChatRoute: typeof ChatRouteWithChildren
+  CustomizeRoute: typeof CustomizeRouteWithChildren
   PairRoute: typeof PairRoute
   SettingsRoute: typeof SettingsRouteWithChildren
 }
@@ -151,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/pair'
       fullPath: '/pair'
       preLoaderRoute: typeof PairRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customize': {
+      id: '/customize'
+      path: '/customize'
+      fullPath: '/customize'
+      preLoaderRoute: typeof CustomizeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_chat': {
@@ -188,6 +292,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsArchivedRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/customize/marketplaces': {
+      id: '/customize/marketplaces'
+      path: '/marketplaces'
+      fullPath: '/customize/marketplaces'
+      preLoaderRoute: typeof CustomizeMarketplacesRouteImport
+      parentRoute: typeof CustomizeRoute
+    }
+    '/customize/installed': {
+      id: '/customize/installed'
+      path: '/installed'
+      fullPath: '/customize/installed'
+      preLoaderRoute: typeof CustomizeInstalledRouteImport
+      parentRoute: typeof CustomizeRoute
+    }
+    '/customize/agents': {
+      id: '/customize/agents'
+      path: '/agents'
+      fullPath: '/customize/agents'
+      preLoaderRoute: typeof CustomizeAgentsRouteImport
+      parentRoute: typeof CustomizeRoute
+    }
+    '/customize/marketplaces/': {
+      id: '/customize/marketplaces/'
+      path: '/'
+      fullPath: '/customize/marketplaces/'
+      preLoaderRoute: typeof CustomizeMarketplacesIndexRouteImport
+      parentRoute: typeof CustomizeMarketplacesRoute
+    }
+    '/customize/marketplaces/$name': {
+      id: '/customize/marketplaces/$name'
+      path: '/$name'
+      fullPath: '/customize/marketplaces/$name'
+      preLoaderRoute: typeof CustomizeMarketplacesNameRouteImport
+      parentRoute: typeof CustomizeMarketplacesRoute
+    }
     '/_chat/draft/$draftId': {
       id: '/_chat/draft/$draftId'
       path: '/draft/$draftId'
@@ -201,6 +340,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/$environmentId/$threadId'
       preLoaderRoute: typeof ChatEnvironmentIdThreadIdRouteImport
       parentRoute: typeof ChatRoute
+    }
+    '/customize/marketplaces/$name/': {
+      id: '/customize/marketplaces/$name/'
+      path: '/'
+      fullPath: '/customize/marketplaces/$name/'
+      preLoaderRoute: typeof CustomizeMarketplacesNameIndexRouteImport
+      parentRoute: typeof CustomizeMarketplacesNameRoute
+    }
+    '/customize/marketplaces/$name/$plugin': {
+      id: '/customize/marketplaces/$name/$plugin'
+      path: '/$plugin'
+      fullPath: '/customize/marketplaces/$name/$plugin'
+      preLoaderRoute: typeof CustomizeMarketplacesNamePluginRouteImport
+      parentRoute: typeof CustomizeMarketplacesNameRoute
     }
   }
 }
@@ -218,6 +371,53 @@ const ChatRouteChildren: ChatRouteChildren = {
 }
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
+
+interface CustomizeMarketplacesNameRouteChildren {
+  CustomizeMarketplacesNamePluginRoute: typeof CustomizeMarketplacesNamePluginRoute
+  CustomizeMarketplacesNameIndexRoute: typeof CustomizeMarketplacesNameIndexRoute
+}
+
+const CustomizeMarketplacesNameRouteChildren: CustomizeMarketplacesNameRouteChildren =
+  {
+    CustomizeMarketplacesNamePluginRoute: CustomizeMarketplacesNamePluginRoute,
+    CustomizeMarketplacesNameIndexRoute: CustomizeMarketplacesNameIndexRoute,
+  }
+
+const CustomizeMarketplacesNameRouteWithChildren =
+  CustomizeMarketplacesNameRoute._addFileChildren(
+    CustomizeMarketplacesNameRouteChildren,
+  )
+
+interface CustomizeMarketplacesRouteChildren {
+  CustomizeMarketplacesNameRoute: typeof CustomizeMarketplacesNameRouteWithChildren
+  CustomizeMarketplacesIndexRoute: typeof CustomizeMarketplacesIndexRoute
+}
+
+const CustomizeMarketplacesRouteChildren: CustomizeMarketplacesRouteChildren = {
+  CustomizeMarketplacesNameRoute: CustomizeMarketplacesNameRouteWithChildren,
+  CustomizeMarketplacesIndexRoute: CustomizeMarketplacesIndexRoute,
+}
+
+const CustomizeMarketplacesRouteWithChildren =
+  CustomizeMarketplacesRoute._addFileChildren(
+    CustomizeMarketplacesRouteChildren,
+  )
+
+interface CustomizeRouteChildren {
+  CustomizeAgentsRoute: typeof CustomizeAgentsRoute
+  CustomizeInstalledRoute: typeof CustomizeInstalledRoute
+  CustomizeMarketplacesRoute: typeof CustomizeMarketplacesRouteWithChildren
+}
+
+const CustomizeRouteChildren: CustomizeRouteChildren = {
+  CustomizeAgentsRoute: CustomizeAgentsRoute,
+  CustomizeInstalledRoute: CustomizeInstalledRoute,
+  CustomizeMarketplacesRoute: CustomizeMarketplacesRouteWithChildren,
+}
+
+const CustomizeRouteWithChildren = CustomizeRoute._addFileChildren(
+  CustomizeRouteChildren,
+)
 
 interface SettingsRouteChildren {
   SettingsArchivedRoute: typeof SettingsArchivedRoute
@@ -237,6 +437,7 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   ChatRoute: ChatRouteWithChildren,
+  CustomizeRoute: CustomizeRouteWithChildren,
   PairRoute: PairRoute,
   SettingsRoute: SettingsRouteWithChildren,
 }
