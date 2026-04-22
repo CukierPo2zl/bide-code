@@ -122,6 +122,19 @@ export interface WsRpcClient {
   };
   readonly agents: {
     readonly listAgents: RpcUnaryMethod<typeof WS_METHODS.agentsListAgents>;
+    readonly createGlobalAgent: RpcUnaryMethod<typeof WS_METHODS.agentsCreateGlobalAgent>;
+  };
+  readonly plugins: {
+    readonly listMarketplaces: RpcUnaryMethod<typeof WS_METHODS.pluginsListMarketplaces>;
+    readonly addMarketplace: RpcUnaryMethod<typeof WS_METHODS.pluginsAddMarketplace>;
+    readonly removeMarketplace: RpcUnaryMethod<typeof WS_METHODS.pluginsRemoveMarketplace>;
+    readonly listInstalled: RpcUnaryMethod<typeof WS_METHODS.pluginsListInstalled>;
+    readonly listMarketplacePlugins: RpcUnaryMethod<
+      typeof WS_METHODS.pluginsListMarketplacePlugins
+    >;
+    readonly getPluginDetails: RpcUnaryMethod<typeof WS_METHODS.pluginsGetPluginDetails>;
+    readonly installPlugin: RpcUnaryMethod<typeof WS_METHODS.pluginsInstallPlugin>;
+    readonly uninstallPlugin: RpcUnaryMethod<typeof WS_METHODS.pluginsUninstallPlugin>;
   };
   readonly workflow: {
     readonly list: RpcUnaryNoArgMethod<typeof WORKFLOW_WS_METHODS.workflowList>;
@@ -265,6 +278,28 @@ export function createWsRpcClient(transport: WsTransport): WsRpcClient {
     agents: {
       listAgents: (input) =>
         transport.request((client) => client[WS_METHODS.agentsListAgents](input)),
+      createGlobalAgent: (input) =>
+        transport.request((client) => client[WS_METHODS.agentsCreateGlobalAgent](input)),
+    },
+    plugins: {
+      listMarketplaces: (input) =>
+        transport.request((client) => client[WS_METHODS.pluginsListMarketplaces](input)),
+      addMarketplace: (input) =>
+        transport.request((client) => client[WS_METHODS.pluginsAddMarketplace](input)),
+      removeMarketplace: (input) =>
+        transport.request((client) => client[WS_METHODS.pluginsRemoveMarketplace](input)),
+      listInstalled: (input) =>
+        transport.request((client) => client[WS_METHODS.pluginsListInstalled](input)),
+      listMarketplacePlugins: (input) =>
+        transport.request((client) =>
+          client[WS_METHODS.pluginsListMarketplacePlugins](input),
+        ),
+      getPluginDetails: (input) =>
+        transport.request((client) => client[WS_METHODS.pluginsGetPluginDetails](input)),
+      installPlugin: (input) =>
+        transport.request((client) => client[WS_METHODS.pluginsInstallPlugin](input)),
+      uninstallPlugin: (input) =>
+        transport.request((client) => client[WS_METHODS.pluginsUninstallPlugin](input)),
     },
     workflow: {
       list: () => transport.request((client) => client[WORKFLOW_WS_METHODS.workflowList]({})),
