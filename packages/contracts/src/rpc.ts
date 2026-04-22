@@ -76,7 +76,33 @@ import {
   ServerUpsertKeybindingResult,
 } from "./server.ts";
 import { ServerSettings, ServerSettingsError, ServerSettingsPatch } from "./settings.ts";
-import { ListAgentsInput, ListAgentsResult, ListAgentsError } from "./agents.ts";
+import {
+  CreateGlobalAgentError,
+  CreateGlobalAgentInput,
+  CreateGlobalAgentResult,
+  ListAgentsError,
+  ListAgentsInput,
+  ListAgentsResult,
+} from "./agents.ts";
+import {
+  AddMarketplaceInput,
+  AddMarketplaceResult,
+  GetPluginDetailsInput,
+  GetPluginDetailsResult,
+  InstallPluginInput,
+  InstallPluginResult,
+  ListInstalledPluginsInput,
+  ListInstalledPluginsResult,
+  ListMarketplacePluginsInput,
+  ListMarketplacePluginsResult,
+  ListMarketplacesInput,
+  ListMarketplacesResult,
+  PluginsServiceError,
+  RemoveMarketplaceInput,
+  RemoveMarketplaceResult,
+  UninstallPluginInput,
+  UninstallPluginResult,
+} from "./plugins.ts";
 import {
   WORKFLOW_WS_METHODS,
   WsSubscribeWorkflowsRpc,
@@ -101,6 +127,17 @@ export const WS_METHODS = {
 
   // Agent methods
   agentsListAgents: "agents.listAgents",
+  agentsCreateGlobalAgent: "agents.createGlobalAgent",
+
+  // Plugin methods
+  pluginsListMarketplaces: "plugins.listMarketplaces",
+  pluginsAddMarketplace: "plugins.addMarketplace",
+  pluginsRemoveMarketplace: "plugins.removeMarketplace",
+  pluginsListInstalled: "plugins.listInstalled",
+  pluginsListMarketplacePlugins: "plugins.listMarketplacePlugins",
+  pluginsGetPluginDetails: "plugins.getPluginDetails",
+  pluginsInstallPlugin: "plugins.installPlugin",
+  pluginsUninstallPlugin: "plugins.uninstallPlugin",
 
   // Git methods
   gitPull: "git.pull",
@@ -200,6 +237,63 @@ export const WsAgentsListAgentsRpc = Rpc.make(WS_METHODS.agentsListAgents, {
   payload: ListAgentsInput,
   success: ListAgentsResult,
   error: ListAgentsError,
+});
+
+export const WsAgentsCreateGlobalAgentRpc = Rpc.make(WS_METHODS.agentsCreateGlobalAgent, {
+  payload: CreateGlobalAgentInput,
+  success: CreateGlobalAgentResult,
+  error: CreateGlobalAgentError,
+});
+
+export const WsPluginsListMarketplacesRpc = Rpc.make(WS_METHODS.pluginsListMarketplaces, {
+  payload: ListMarketplacesInput,
+  success: ListMarketplacesResult,
+  error: PluginsServiceError,
+});
+
+export const WsPluginsAddMarketplaceRpc = Rpc.make(WS_METHODS.pluginsAddMarketplace, {
+  payload: AddMarketplaceInput,
+  success: AddMarketplaceResult,
+  error: PluginsServiceError,
+});
+
+export const WsPluginsRemoveMarketplaceRpc = Rpc.make(WS_METHODS.pluginsRemoveMarketplace, {
+  payload: RemoveMarketplaceInput,
+  success: RemoveMarketplaceResult,
+  error: PluginsServiceError,
+});
+
+export const WsPluginsListInstalledRpc = Rpc.make(WS_METHODS.pluginsListInstalled, {
+  payload: ListInstalledPluginsInput,
+  success: ListInstalledPluginsResult,
+  error: PluginsServiceError,
+});
+
+export const WsPluginsListMarketplacePluginsRpc = Rpc.make(
+  WS_METHODS.pluginsListMarketplacePlugins,
+  {
+    payload: ListMarketplacePluginsInput,
+    success: ListMarketplacePluginsResult,
+    error: PluginsServiceError,
+  },
+);
+
+export const WsPluginsGetPluginDetailsRpc = Rpc.make(WS_METHODS.pluginsGetPluginDetails, {
+  payload: GetPluginDetailsInput,
+  success: GetPluginDetailsResult,
+  error: PluginsServiceError,
+});
+
+export const WsPluginsInstallPluginRpc = Rpc.make(WS_METHODS.pluginsInstallPlugin, {
+  payload: InstallPluginInput,
+  success: InstallPluginResult,
+  error: PluginsServiceError,
+});
+
+export const WsPluginsUninstallPluginRpc = Rpc.make(WS_METHODS.pluginsUninstallPlugin, {
+  payload: UninstallPluginInput,
+  success: UninstallPluginResult,
+  error: PluginsServiceError,
 });
 
 export const WsSubscribeGitStatusRpc = Rpc.make(WS_METHODS.subscribeGitStatus, {
@@ -389,6 +483,15 @@ export const WsRpcGroup = RpcGroup.make(
   WsShellOpenInEditorRpc,
   WsFilesystemBrowseRpc,
   WsAgentsListAgentsRpc,
+  WsAgentsCreateGlobalAgentRpc,
+  WsPluginsListMarketplacesRpc,
+  WsPluginsAddMarketplaceRpc,
+  WsPluginsRemoveMarketplaceRpc,
+  WsPluginsListInstalledRpc,
+  WsPluginsListMarketplacePluginsRpc,
+  WsPluginsGetPluginDetailsRpc,
+  WsPluginsInstallPluginRpc,
+  WsPluginsUninstallPluginRpc,
   WsSubscribeGitStatusRpc,
   WsGitPullRpc,
   WsGitRefreshStatusRpc,

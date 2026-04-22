@@ -17,3 +17,4 @@ export * from "./filesystem.ts";
 export * from "./rpc.ts";
 export * from "./agents.ts";
 export * from "./workflow.ts";
+export * from "./plugins.ts";
