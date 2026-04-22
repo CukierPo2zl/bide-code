@@ -1,6 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AgentDefinition } from "@t3tools/contracts";
+import type { AgentDefinition, CreateGlobalAgentInput } from "@t3tools/contracts";
 import { getPrimaryEnvironmentConnection } from "../environments/runtime";
+
+export async function createGlobalAgent(
+  input: CreateGlobalAgentInput,
+): Promise<
+  | { ok: true; agent: AgentDefinition }
+  | { ok: false; message: string; kind?: "validation" | "collision" | "io" }
+> {
+  try {
+    const client = getPrimaryEnvironmentConnection().client;
+    const result = await client.agents.createGlobalAgent(input);
+    return { ok: true, agent: result.agent };
+  } catch (error) {
+    const err = error as { message?: string; kind?: "validation" | "collision" | "io" };
+    return {
+      ok: false,
+      message: err?.message ?? "Failed to create agent",
+      ...(err?.kind !== undefined && { kind: err.kind }),
+    };
+  }
+}
 
 export function useAgentDefinitions() {
   const [agents, setAgents] = useState<AgentDefinition[]>([]);
