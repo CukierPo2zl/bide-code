@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   ReactFlow,
   Background,
@@ -387,6 +388,7 @@ function WorkflowRightSidebar({
   onShowDetails: (agent: AgentDefinition) => void;
 }) {
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   const filtered = useMemo(() => {
     if (!search.trim()) return agents;
@@ -446,9 +448,22 @@ function WorkflowRightSidebar({
             Loading agents...
           </p>
         ) : filtered.length === 0 ? (
-          <p className="px-2 py-4 text-center text-[10px] text-muted-foreground/40">
-            {search ? "No matching agents" : "No agents available"}
-          </p>
+          search ? (
+            <p className="px-2 py-4 text-center text-[10px] text-muted-foreground/40">
+              No matching agents
+            </p>
+          ) : (
+            <div className="px-2 py-4 text-center">
+              <p className="text-[10px] text-muted-foreground/60">No agents available.</p>
+              <button
+                type="button"
+                onClick={() => void navigate({ to: "/customize/marketplaces" })}
+                className="mt-2 rounded border border-border bg-background px-2 py-1 text-[10px] text-foreground hover:bg-accent"
+              >
+                Browse marketplaces
+              </button>
+            </div>
+          )
         ) : (
           <div className="space-y-3">
             {builtinAgents.length > 0 && (
@@ -501,6 +516,21 @@ function WorkflowRightSidebar({
                 </div>
               </div>
             ))}
+
+            {!search && globalAgents.length === 0 && pluginAgents.length === 0 ? (
+              <div className="mt-2 rounded border border-dashed border-border/60 p-2 text-center">
+                <p className="text-[10px] text-muted-foreground/60">
+                  Want more agents? Install plugins from a marketplace.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void navigate({ to: "/customize/marketplaces" })}
+                  className="mt-1.5 text-[10px] text-foreground underline-offset-2 hover:underline"
+                >
+                  Browse marketplaces
+                </button>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
