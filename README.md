@@ -11,52 +11,28 @@ T3 Code is a minimal web GUI for coding agents (currently Codex and Claude, more
 > - Codex: install [Codex CLI](https://github.com/openai/codex) and run `codex login`
 > - Claude: install Claude Code and run `claude auth login`
 
-### Run without installing
+## Features
 
-```bash
-npx t3
-```
+On top of vanilla T3 Code we've added two features:
 
-### Desktop app
+### Workflow Templates
 
-Install the latest version of the desktop app from [GitHub Releases](https://github.com/pingdotgg/t3code/releases), or from your favorite package registry:
+Workflow Templates let you define a reusable graph of agent steps and run them on demand. Each template is a set of nodes (start, agent, and artifact nodes) connected by edges, authored on a visual canvas.
 
-#### Windows (`winget`)
+How it works:
 
-```bash
-winget install T3Tools.T3Code
-```
+- **Author**: Open the Workflows tab, create a template, and drag nodes onto the canvas. An agent node is bound to a provider (Codex or Claude) and carries the prompt that will be sent when the step runs.
+- **Wire**: Connect nodes with edges to describe the order of execution. Artifact nodes represent files or outputs that flow between steps.
+- **Persist**: Templates are stored locally and can be edited, duplicated, or deleted at any time.
+- **Run**: Trigger a template to spawn the configured agent sessions in sequence, passing artifacts along the edges.
 
-#### macOS (Homebrew)
+### Marketplace
 
-```bash
-brew install --cask t3-code
-```
+The Marketplace is where you discover and install plugins that extend T3 Code. A marketplace is a Git or GitHub repository that publishes a catalog of plugins; registering one makes its plugins browsable from the Customize tab.
 
-#### Arch Linux (AUR)
+How it works:
 
-```bash
-yay -S t3code-bin
-```
-
-## Some notes
-
-We are very very early in this project. Expect bugs.
-
-We are not accepting contributions yet.
-
-Observability guide: [docs/observability.md](./docs/observability.md)
-
-## If you REALLY want to contribute still.... read this first
-
-Before local development, prepare the environment and install dependencies:
-
-```bash
-# Optional: only needed if you use mise for dev tool management.
-mise install
-bun install .
-```
-
-Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening an issue or PR.
-
-Need support? Join the [Discord](https://discord.gg/jn4EGJjrvv).
+- **Register**: Add a marketplace by pointing at a `github:owner/repo` or a Git URL (optionally pinned to a ref). Registered marketplaces are shared with the Claude CLI.
+- **Browse**: Open a marketplace to see its plugins, read descriptions, and inspect details before installing.
+- **Install**: Install a plugin from its details page to make it available to your agents.
+- **Manage**: Refresh a marketplace to pull the latest catalog, or remove it when you no longer need it.
