@@ -1,7 +1,13 @@
 import { Schema, Context } from "effect";
 import type { Effect } from "effect";
 
-import type { ListAgentsInput, ListAgentsResult } from "@t3tools/contracts";
+import type {
+  CreateGlobalAgentError,
+  CreateGlobalAgentInput,
+  CreateGlobalAgentResult,
+  ListAgentsInput,
+  ListAgentsResult,
+} from "@t3tools/contracts";
 
 export class AgentDefinitionsError extends Schema.TaggedErrorClass<AgentDefinitionsError>()(
   "AgentDefinitionsError",
@@ -16,6 +22,9 @@ export interface AgentDefinitionsShape {
   readonly listAgents: (
     input: ListAgentsInput,
   ) => Effect.Effect<ListAgentsResult, AgentDefinitionsError>;
+  readonly createGlobalAgent: (
+    input: CreateGlobalAgentInput,
+  ) => Effect.Effect<CreateGlobalAgentResult, CreateGlobalAgentError>;
 }
 
 export class AgentDefinitions extends Context.Service<AgentDefinitions, AgentDefinitionsShape>()(
