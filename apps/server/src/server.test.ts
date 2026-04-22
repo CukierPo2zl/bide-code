@@ -109,6 +109,7 @@ import {
   AgentDefinitions,
   type AgentDefinitionsShape,
 } from "./agents/Services/AgentDefinitions.ts";
+import { Plugins, type PluginsShape } from "./plugins/Services/Plugins.ts";
 import {
   WorkflowTemplateService,
   type WorkflowTemplateServiceShape,
@@ -344,6 +345,7 @@ const buildAppUnderTest = (options?: {
     serverEnvironment?: Partial<ServerEnvironmentShape>;
     repositoryIdentityResolver?: Partial<RepositoryIdentityResolverShape>;
     agentDefinitions?: Partial<AgentDefinitionsShape>;
+    plugins?: Partial<PluginsShape>;
     workflowTemplateService?: Partial<WorkflowTemplateServiceShape>;
   };
 }) =>
@@ -552,7 +554,62 @@ const buildAppUnderTest = (options?: {
       Layer.provide(
         Layer.mock(AgentDefinitions)({
           listAgents: () => Effect.succeed({ agents: [] }),
+          createGlobalAgent: (input) =>
+            Effect.succeed({
+              agent: {
+                name: input.name,
+                fileName: `${input.name}.md`,
+                scope: "global" as const,
+                body: input.body,
+              },
+            }),
           ...options?.layers?.agentDefinitions,
+        }),
+      ),
+      Layer.provide(
+        Layer.mock(Plugins)({
+          listMarketplaces: () => Effect.succeed({ marketplaces: [] }),
+          addMarketplace: (input) =>
+            Effect.succeed({
+              marketplace: {
+                name: "mock-marketplace",
+                source: { kind: "git" as const, url: input.sourceInput },
+                installLocation: "/tmp/mock",
+                lastUpdated: null,
+              },
+            }),
+          removeMarketplace: (input) => Effect.succeed({ name: input.name }),
+          listInstalled: () => Effect.succeed({ plugins: [] }),
+          listMarketplacePlugins: (input) =>
+            Effect.succeed({ marketplaceName: input.marketplaceName, plugins: [] }),
+          getPluginDetails: (input) =>
+            Effect.succeed({
+              plugin: {
+                name: input.pluginName,
+                marketplaceName: input.marketplaceName,
+                sourceKind: "unknown" as const,
+                sourceSummary: "",
+                isInstalled: false,
+                agents: [],
+                commands: [],
+              },
+            }),
+          installPlugin: (input) =>
+            Effect.succeed({
+              plugin: {
+                name: input.pluginName,
+                marketplaceName: input.marketplaceName,
+                version: "0.0.0",
+                installPath: "/tmp/mock",
+                agentCount: 0,
+              },
+            }),
+          uninstallPlugin: (input) =>
+            Effect.succeed({
+              marketplaceName: input.marketplaceName,
+              pluginName: input.pluginName,
+            }),
+          ...options?.layers?.plugins,
         }),
       ),
       Layer.provide(
